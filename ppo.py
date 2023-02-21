@@ -8,6 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 # import envs
 import graph_envs
 import utils
+import graph_envs.utils
 
 # from networks import Transformer, TransformerConfig, Agent
 # from eval import eval_model
@@ -157,13 +158,16 @@ if __name__ == '__main__':
     dones_stack = torch.zeros((n_steps, n_envs)).to(device)
     values_stack = torch.zeros((n_steps, n_envs)).to(device)
     
-    1/0
+    
     # Resetting the environments
     next_obs, info = envs.reset(seed=seed)
     next_obs = torch.Tensor(next_obs).to(device)
+    
     if has_mask:
         next_mask = torch.BoolTensor(np.stack(info['mask'], axis=0)).to(device)
     next_done = torch.zeros(n_envs).to(device)
+    print(next_mask)
+    1/0
     
     global_step = 0
     
