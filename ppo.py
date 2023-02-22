@@ -89,6 +89,16 @@ max_grad_norm = 0.5
 
 seed = None 
 
+
+model_config = {
+    'dropout': 0.1,
+    'norm': True,
+    'activation': torch.nn.GELU,
+    'layers': 5,
+    'hidden': 32,
+}
+model_config = utils.DotDict(model_config)
+
 #--------------------
 
 
@@ -141,7 +151,7 @@ if __name__ == '__main__':
     
     # Initializing the model
     # model = Transformer(transformerconf).to(device)
-    model = utils.get_model(model_type, env_id, env_args).to(device)
+    model = utils.get_model(model_type, model_config, env_id, env_args).to(device)
     # model.to(device)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, eps=1e-5)
@@ -166,8 +176,6 @@ if __name__ == '__main__':
     if has_mask:
         next_mask = torch.BoolTensor(np.stack(info['mask'], axis=0)).to(device)
     next_done = torch.zeros(n_envs).to(device)
-    print(next_mask)
-    1/0
     
     global_step = 0
     
@@ -175,11 +183,11 @@ if __name__ == '__main__':
         
         if update % eval_freq == 0:
             # torch.save(model.state_dict(), f'./models/{run_name}.pth')
-            eval_model(model, eval_envs, eval_steps,
-                       has_mask=has_mask, device=device, seed=seed,
-                       writer=writer, global_step=global_step,
-                       pick_max=True, print_sol=False)
-        
+            # eval_model(model, eval_envs, eval_steps,
+            #            has_mask=has_mask, device=device, seed=seed,
+            #            writer=writer, global_step=global_step,
+            #            pick_max=True, print_sol=False)
+            print('Implement Evaluation!')
             # eval_model(model, eval_envs, 128*2, has_mask=has_mask, device=device, seed=seed, pick_max=False, print_sol=True)
             
         t_start = time.time()
@@ -201,13 +209,22 @@ if __name__ == '__main__':
             if has_mask:
                 masks_stack[step] = next_mask
             
+            print(next_obs.shape, next_mask.shape)
             with torch.no_grad():
-                embedding = model.encode(next_obs)
-                if has_mask:
-                    action, logprob, entropy, value = model.decode(embedding, next_mask)
-                else:
-                    action, logprob, entropy, value = model.decode(embedding)
                 
+                if model_type == 'GNN':
+                    x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
+                    model_input = graph_envs.utils.to_pyg_graph(x, edge_index, edge_features)
+                else:
+                    model_input = None
+                    
+                    
+                if has_mask:   
+                    action, logprob, entropy, value = model(model_input, next_mask)
+                else:
+                    action, logprob, entropy, value = model(model_input)
+                
+            
             
             action_stack[step] = action
             logprobs_stack[step] = logprob
