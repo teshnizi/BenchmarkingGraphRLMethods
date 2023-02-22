@@ -54,50 +54,57 @@ class MyGNNLayer(torch.nn.Module):
     def __init__(self, hidden_f: int=32, activation: torch.nn.Module = torch.nn.GELU, num_layers: int = 2, norm: bool = True, dropout: float = 0.1):
         super(MyGNNLayer, self).__init__()
 
-        self.edge_mlp = ResidualMLP(2*hidden_f + hidden_f + hidden_f, hidden_f, hidden_f, activation, num_layers, norm, dropout)
-        self.node_mlp_1 = ResidualMLP(hidden_f + hidden_f, hidden_f, hidden_f, activation, num_layers, norm, dropout)
-        self.node_mlp_2 = ResidualMLP(hidden_f + hidden_f, hidden_f, hidden_f, activation, num_layers, norm, dropout)
-        self.global_mlp = ResidualMLP(hidden_f + hidden_f, hidden_f, hidden_f, activation, num_layers, norm, dropout)
+        self.edge_mlp = torch.nn.Sequential(
+            torch.nn.Linear(2*hidden_f + hidden_f + hidden_f, hidden_f),
+            activation(),
+            torch.nn.Dropout(dropout)
+        )
+        self.edge_norm = torch.nn.LayerNorm(hidden_f)
+        
+        self.node_mlp_1 = torch.nn.Sequential(
+            torch.nn.Linear(hidden_f + hidden_f, hidden_f),
+            activation(),
+            torch.nn.Dropout(dropout)
+        )
+        self.node_mlp_2 = torch.nn.Sequential(
+            torch.nn.Linear(hidden_f + hidden_f, hidden_f),
+            activation(),
+            torch.nn.Dropout(dropout)
+        )
+        self.node_norm = torch.nn.LayerNorm(hidden_f)
+        
+        self.global_mlp = torch.nn.Sequential(
+            torch.nn.Linear(hidden_f + hidden_f, hidden_f),
+            activation(),
+            torch.nn.Dropout(dropout)
+        )
+        self.global_norm = torch.nn.LayerNorm(hidden_f)
+        
         
         def edge_model(src, dest, edge_attr, u, batch):
-            # source, target: [E, F_x], where E is the number of edges.
-            # edge_attr: [E, F_e]
-            # u: [B, F_u], where B is the number of graphs.
-            # batch: [E] with max entry B - 1.
             
             out = torch.cat([src, dest, edge_attr, u[batch]], 1)
-            return self.edge_mlp(out)
+            out = self.edge_mlp(out)
+            out = self.edge_norm(out + edge_attr)
+            return out
+
 
         def node_model(x, edge_index, edge_attr, u, batch):
-            # x: [N, F_x], where N is the number of nodes.
-            # edge_index: [2, E] with max entry N - 1.
-            # edge_attr: [E, F_e]
-            # u: [B, F_u]
-            # batch: [N] with max entry B - 1.
-
-            
-            # Calculating messages neighbors
             row, col = edge_index
             out = torch.cat([x[col], edge_attr], dim=1)
             out = self.node_mlp_1(out)
-            
-            # Calculating the mean of the messages
             out = scatter_mean(out, row, dim=0, dim_size=x.size(0))
-
-            # Concatenating the messages with the global features
             out = torch.cat([out, u[batch]], dim=1)
+            out = self.node_mlp_2(out)
+            out = self.node_norm(out + x)
+            return out
             
-            
-            return self.node_mlp_2(out)
 
-        def global_model(x, edge_index, edge_attr, u, batch):
-            # x: [N, F_x], where N is the number of nodes.
-            # edge_index: [2, E] with max entry N - 1.
-            # edge_attr: [E, F_e]
-            # u: [B, F_u]
-            # batch: [N] with max entry B - 1.
+        def global_model(x, edge_index, edge_attr, u, batch):  
             out = torch.cat([u, scatter_mean(x, batch, dim=0)], dim=1)
-            return self.global_mlp(out)
+            out = self.global_mlp(out)
+            out = self.global_norm(out + u)
+            return out
 
         self.op = MetaLayer(edge_model, node_model, global_model)
 

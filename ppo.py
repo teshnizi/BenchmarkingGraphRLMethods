@@ -16,13 +16,15 @@ import graph_envs.utils
 
 torch.set_printoptions(sci_mode=False, precision=2, threshold=1000)
 np.set_printoptions(suppress=True, precision=2, threshold=1000)
+torch.autograd.set_detect_anomaly(True)
 
 #--------------------
-device = torch.device('cuda:4')
+device = torch.device('cpu')
 
 env_args = {
     'n_nodes': 10,
-    'n_edges': 15,
+    'n_edges': 20,
+    'weighted': True,
 }
 
 env_id = 'ShortestPath-v0'
@@ -59,9 +61,9 @@ if env_id == 'ShortestPath-v0':
 # n_hidden=48*n_head
 # dropout=0.1
 
-n_envs=8
+n_envs=16
 n_eval_envs=4
-n_steps=128
+n_steps=64
 batch_size = n_envs * n_steps
 total_steps = 5000000
 num_updates = total_steps // batch_size
@@ -77,7 +79,7 @@ anneal_lr = True
 learning_rate = 1e-3
 
 gamma = 0.995
-gae = True # False seems to work better
+gae = False # False seems to work better
 gae_lambda = 0.95
 adv_norm = False # False seems to work really better!
 clip_value_loss = True
@@ -95,7 +97,7 @@ model_config = {
     'norm': True,
     'activation': torch.nn.GELU,
     'layers': 5,
-    'hidden': 32,
+    'hidden': 16,
 }
 model_config = utils.DotDict(model_config)
 
@@ -152,14 +154,14 @@ if __name__ == '__main__':
     # Initializing the model
     # model = Transformer(transformerconf).to(device)
     model = utils.get_model(model_type, model_config, env_id, env_args).to(device)
-    
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, eps=1e-5)
+    
     print(f'Number of Model Params: {get_n_params(model)}')
     
     # Initializing the stacks
     obs_stack = torch.zeros((n_steps, n_envs) + envs.single_observation_space.shape).to(device)
     if has_mask:
-        masks_stack = torch.zeros((n_steps, n_envs) + mask_shape).to(device)
+        masks_stack = torch.zeros((n_steps, n_envs) + mask_shape).to(device) < 1
         
     action_stack = torch.zeros((n_steps, n_envs) + envs.single_action_space.shape).to(device)
     logprobs_stack = torch.zeros((n_steps, n_envs)).to(device)
@@ -200,6 +202,8 @@ if __name__ == '__main__':
         # Collecting the trajectories
         ep_rews = []
         ep_lens = []
+        opt_sols = []
+        sols_found = []
 
         for step in range(n_steps):
             global_step += n_envs
@@ -209,22 +213,9 @@ if __name__ == '__main__':
                 masks_stack[step] = next_mask
             
             with torch.no_grad():
-                
-                if model_type == 'GNN':
-                    x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
-                    
-                    model_input = graph_envs.utils.to_pyg_graph(x, edge_features, edge_index)
-                else:
-                    model_input = None
-                    
-                    
-                if has_mask:   
-                    action, logprob, entropy, value = model(model_input, next_mask)
-                else:
-                    action, logprob, entropy, value = model(model_input)
-                
-            print(action, logprob, entropy, value)
-            1/0
+                x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
+                action, logprob, entropy, value = utils.forward_pass(model, model_type, x, edge_features, edge_index, has_mask, next_mask, actions=None)
+            
             
             action_stack[step] = action
             logprobs_stack[step] = logprob
@@ -233,6 +224,7 @@ if __name__ == '__main__':
             
             obs, reward, done, _, info = envs.step(action.cpu().numpy())
             rewards_stack[step] = torch.Tensor(reward).to(device)
+            # print('act! ', action, 'reward= ', reward)
             
             next_obs = torch.Tensor(obs).to(device)
             if has_mask:
@@ -240,28 +232,48 @@ if __name__ == '__main__':
                 
             next_done = torch.Tensor(done).to(device)
 
+            
             if 'final_info' in info:
                 for e in range(n_envs):
                     if info['final_info'][e] != None:
+                        # print('optimal solution: ', info['final_info'][e]['optimal_solution'])
+                        
+                        # print('---------')
+                        # print('Nodes: ', obs[e, 0:10])
+                        # gg = graph_envs.utils.devectorize_graph(torch.from_numpy(obs), env_id, **env_args)
+                        # print('Edges: \n', gg[2][0].T.cpu().numpy())
+                        
+                        solved = info['final_info'][e]['solved']
+                        
                         ep_rew = info['final_info'][e]['episode']['r']
                         ep_len = info['final_info'][e]['episode']['l']
-
-                        ep_lens.append(ep_len)
-                        ep_rews.append(ep_rew)
+                        opt = info['final_info'][e]['optimal_solution']
+                        
+                        if solved:
+                            opt_sols.append(opt)
+                            ep_lens.append(ep_len)
+                            ep_rews.append(ep_rew)
+                        
+                        sols_found.append(solved)
                         
         writer.add_scalar('charts/ep_rew', np.mean(ep_rews), global_step)
         writer.add_scalar('charts/ep_len', np.mean(ep_lens), global_step)
-        print(f'Update: {update}, Mean Ep Rew: {np.mean(ep_rews)}, Mean Ep Len: {np.mean(ep_lens)}')
+        
+        print('----------------------------------')
+        print(f'Update: {update}, Mean Ep Rew: {np.mean(ep_rews)}, Mean Ep Len: {np.mean(ep_lens)}, Sample_size: {len(ep_rews)}')
+        print(f'Solved: {np.mean(sols_found)}, Mean opt: {np.mean(opt_sols)}')
         
         
         # Computing the returns
         with torch.no_grad():
             # Getting the last value
-            embedding = model.encode(next_obs)
-            if has_mask:
-                _, _, _, next_value = model.decode(embedding, next_mask)
-            else:
-                _, _, _, next_value = model.decode(embedding)
+        
+            
+            x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
+            # print(x.T, '\n', edge_features.T, '\n', edge_index)
+            _, _, _, next_value = utils.forward_pass(model, model_type, x, edge_features, edge_index, has_mask, next_mask, actions=None)
+            
+            
                 
             next_value = next_value.reshape(1, -1)
             
@@ -290,7 +302,10 @@ if __name__ == '__main__':
                         nextvalues = values_stack[t + 1]
                     returns_stack[t] = rewards_stack[t] + gamma * nextvalues * nextnonterminal
                 advantages_stack = returns_stack - values_stack
-       
+        # print(rewards_stack)
+        # print(returns_stack)
+        # print(advantages_stack)
+        
         # Batches of flattened trajectories
         b_obs = obs_stack.reshape((-1,) + envs.single_observation_space.shape)
         b_actions = action_stack.reshape((-1,) + envs.single_action_space.shape)
@@ -301,7 +316,8 @@ if __name__ == '__main__':
         b_advantages = advantages_stack.reshape(-1)
         b_returns = returns_stack.reshape(-1)
         b_values = values_stack.reshape(-1)
-    
+        
+        
         b_inds = np.arange(batch_size)
         clipfracs = []
         
@@ -310,12 +326,15 @@ if __name__ == '__main__':
             for start in range(0, batch_size, mini_batch_size):
                 end = start + mini_batch_size
                 mb_inds = b_inds[start:end]
-
-                embedding = model.encode(b_obs[mb_inds])
-                if has_mask:
-                    _, new_logprobs, entropy, new_values = model.decode(x=embedding, mask=b_masks[mb_inds], action=b_actions[mb_inds])
-                else:
-                    _, new_logprobs, entropy, new_values = model.decode(x=embedding, action=b_actions[mb_inds])
+                
+                x, edge_features, edge_index = graph_envs.utils.devectorize_graph(b_obs[mb_inds], env_id, **env_args)
+                _, new_logprobs, entropy, new_values = utils.forward_pass(model, model_type, x, edge_features, edge_index, has_mask, b_masks[mb_inds], b_actions[mb_inds])
+                
+                # embedding = model.encode(b_obs[mb_inds])
+                # if has_mask:
+                #     _, new_logprobs, entropy, new_values = model.decode(x=embedding, mask=b_masks[mb_inds], action=b_actions[mb_inds])
+                # else:
+                #     _, new_logprobs, entropy, new_values = model.decode(x=embedding, action=b_actions[mb_inds])
                 
                 logratio = new_logprobs - b_logprobs[mb_inds]
                 ratio = logratio.exp()
