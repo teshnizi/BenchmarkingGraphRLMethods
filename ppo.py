@@ -152,7 +152,6 @@ if __name__ == '__main__':
     # Initializing the model
     # model = Transformer(transformerconf).to(device)
     model = utils.get_model(model_type, model_config, env_id, env_args).to(device)
-    # model.to(device)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, eps=1e-5)
     print(f'Number of Model Params: {get_n_params(model)}')
@@ -209,12 +208,12 @@ if __name__ == '__main__':
             if has_mask:
                 masks_stack[step] = next_mask
             
-            print(next_obs.shape, next_mask.shape)
             with torch.no_grad():
                 
                 if model_type == 'GNN':
                     x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
-                    model_input = graph_envs.utils.to_pyg_graph(x, edge_index, edge_features)
+                    
+                    model_input = graph_envs.utils.to_pyg_graph(x, edge_features, edge_index)
                 else:
                     model_input = None
                     
@@ -224,7 +223,8 @@ if __name__ == '__main__':
                 else:
                     action, logprob, entropy, value = model(model_input)
                 
-            
+            print(action, logprob, entropy, value)
+            1/0
             
             action_stack[step] = action
             logprobs_stack[step] = logprob
