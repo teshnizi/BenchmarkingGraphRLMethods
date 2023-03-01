@@ -110,3 +110,13 @@ class MyGNNLayer(torch.nn.Module):
 
     def forward(self, x, edge_index, edge_attr, u, batch):
         return self.op(x, edge_index, edge_attr, u, batch)
+    
+    
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp

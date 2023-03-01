@@ -16,9 +16,10 @@ def get_model(model_type, model_config, env_id, env_args):
     
     if model_type == "GNN":
         if env_id == "ShortestPath-v0":
-            return gnn.GNN(node_f=1, edge_f=1, action_type="node", config=model_config)
+            return gnn.GNN(node_f=2, edge_f=1, action_type="node", config=model_config)
             # return Agent()
-        
+        elif env_id == "SteinerTree-v0":
+            return gnn.GNN(node_f=1, edge_f=1, action_type="edge", config=model_config)
 
 
 def forward_pass(model: torch.nn.Module, 

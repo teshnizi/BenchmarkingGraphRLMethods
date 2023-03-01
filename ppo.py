@@ -5,63 +5,47 @@ import numpy as np
 import time 
 from torch.utils.tensorboard import SummaryWriter
 
-# import envs
+
 import graph_envs
 import utils
 import graph_envs.utils
-
-# from networks import Transformer, TransformerConfig, Agent
-# from eval import eval_model
-
+import networks
+import networks.model_configs
 
 torch.set_printoptions(sci_mode=False, precision=2, threshold=1000)
 np.set_printoptions(suppress=True, precision=2, threshold=1000)
 torch.autograd.set_detect_anomaly(True)
+seed = None 
 
-#--------------------
+
+# ===========================
+# ======= Env Config ========
+# ===========================
+
 device = torch.device('cpu')
 
 env_args = {
-    'n_nodes': 10,
-    'n_edges': 20,
-    'weighted': True,
+    'n_nodes': 20,
+    'n_edges': 25,
+    'weighted': False,
 }
 
 env_id = 'ShortestPath-v0'
-model_type = 'GNN'
-
-# env_id = 'ConvexHull-v0'
-# env_id = 'MultiCast-v0'
+# env_id = 'SteinerTree-v0'
 
 if env_id == 'ShortestPath-v0':
     has_mask = True
     mask_shape = (env_args['n_nodes'],)
-    
-#     n_features=env_dict['n_nodes']
-#     mask_shape = (env_dict['n_nodes'], env_dict['n_nodes'])
-#     node_selection = False
-#     positional_encoding = True
-# elif env_id == 'ConvexHull-v0':
-#     has_mask = True
-#     mask_shape = (env_dict['n_nodes'], )
-#     n_features = 2
-#     node_selection = True
-#     positional_encoding = False
-# elif env_id == 'MultiCast-v0':
-#     has_mask = True
-#     node_selection = False
-#     positional_encoding = True
-#     env_dict['n_targets'] = 2
-#     env_dict['n_msgs'] = 2
-#     n_features = (env_dict['n_msgs'])
-#     mask_shape = (env_dict['n_nodes'], env_dict['n_nodes'] * env_dict['n_msgs'])
+elif env_id == 'SteinerTree-v0':
+    has_mask = True
+    mask_shape = (2*env_args['n_edges'],)
 
-# n_head=1 # up to 12
-# n_layer=12 # up to 24
-# n_hidden=48*n_head
-# dropout=0.1
 
-n_envs=16
+# ===========================
+# ======= PPO Config ========
+# ===========================
+
+n_envs=8
 n_eval_envs=4
 n_steps=64
 batch_size = n_envs * n_steps
@@ -75,8 +59,8 @@ eval_freq = 100
 eval_steps = 128
 
 anneal_lr = True
-# learning_rate = 2.5e-4
-learning_rate = 1e-3
+learning_rate = 2.5e-4
+# learning_rate = 1e-3
 
 gamma = 0.995
 gae = False # False seems to work better
@@ -89,30 +73,17 @@ entropy_loss_coef = 0.01
 value_loss_coef = 0.5
 max_grad_norm = 0.5
 
-seed = None 
+# ===========================
+# ====== Model Config =======
+# ===========================
 
+model_type = 'GNN'
+model_config = networks.model_configs.get_default_config(model_type)
 
-model_config = {
-    'dropout': 0.1,
-    'norm': True,
-    'activation': torch.nn.GELU,
-    'layers': 5,
-    'hidden': 16,
-}
-model_config = utils.DotDict(model_config)
+# ===========================
+# ===========================
 
-#--------------------
-
-
-def get_n_params(model):
-    pp=0
-    for p in list(model.parameters()):
-        nn=1
-        for s in list(p.size()):
-            nn = nn*s
-        pp += nn
-    return pp
-
+import graph_envs.steiner_tree
 
 if __name__ == '__main__':
     
@@ -133,19 +104,6 @@ if __name__ == '__main__':
             )
         for _ in range(n_eval_envs)])
     
-    
-    # transformerconf = TransformerConfig(
-    #     n_nodes=env_dict['n_nodes'],
-    #     n_edges=env_dict['n_edges'],
-    #     n_msgs=env_dict['n_msgs'],
-    #     n_layer=n_layer,
-    #     n_head=n_head,
-    #     n_hidden=n_hidden, 
-    #     n_features= n_features, # size of the model
-    #     dropout = dropout, # for determinism
-    #     node_selection=node_selection,
-    #     positional_encoding=positional_encoding,
-    # )
 
     # Initializing the tensorboard writer
     run_name = f"run_{int(time.time())%1e7}_N{env_args['n_nodes']}_E{env_args['n_edges']}"
@@ -156,7 +114,7 @@ if __name__ == '__main__':
     model = utils.get_model(model_type, model_config, env_id, env_args).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, eps=1e-5)
     
-    print(f'Number of Model Params: {get_n_params(model)}')
+    print(f'Number of Model Params: {networks.utils.get_n_params(model)}')
     
     # Initializing the stacks
     obs_stack = torch.zeros((n_steps, n_envs) + envs.single_observation_space.shape).to(device)
@@ -330,6 +288,7 @@ if __name__ == '__main__':
                 x, edge_features, edge_index = graph_envs.utils.devectorize_graph(b_obs[mb_inds], env_id, **env_args)
                 _, new_logprobs, entropy, new_values = utils.forward_pass(model, model_type, x, edge_features, edge_index, has_mask, b_masks[mb_inds], b_actions[mb_inds])
                 
+                
                 # embedding = model.encode(b_obs[mb_inds])
                 # if has_mask:
                 #     _, new_logprobs, entropy, new_values = model.decode(x=embedding, mask=b_masks[mb_inds], action=b_actions[mb_inds])
@@ -373,7 +332,12 @@ if __name__ == '__main__':
                 loss = pg_loss.mean() + value_loss_coef * value_loss - entropy_loss_coef * entropy_loss
                 
                 optimizer.zero_grad()
+
+                
                 loss.backward()
+                
+                # for p in model.parameters():
+                #     p.grad.data.clamp_(-max_grad_norm, max_grad_norm)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
                 optimizer.step()
         
