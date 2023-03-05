@@ -137,10 +137,10 @@ class Transformer(torch.nn.Module):
         x = x.reshape(batch_graph.num_graphs, -1, self.node_f)
         x = self.node_proc(x)
         
-        x += self.positional_encoding(torch.arange(x.shape[1], device=x.device))
+        # x += self.positional_encoding(torch.arange(x.shape[1], device=x.device))
         
         edge_features = pyg.utils.to_dense_adj(edge_index, batch=batch, edge_attr=edge_features)
-        edge_features = edge_features / 100000.0 + 1.0
+        # edge_features = edge_features / 100000.0 + 1.0
         edge_features = self.edge_proc(edge_features)
         
         for att_layer in self.attention_layers:
