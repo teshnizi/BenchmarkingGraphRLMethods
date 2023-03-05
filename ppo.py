@@ -25,13 +25,15 @@ seed = None
 device = torch.device('cpu')
 
 env_args = {
-    'n_nodes': 20,
-    'n_edges': 25,
-    'weighted': False,
+    'n_nodes': 10,
+    'n_edges': 14,
+    'weighted': True,
 }
 
-env_id = 'ShortestPath-v0'
-# env_id = 'SteinerTree-v0'
+
+# env_id = 'ShortestPath-v0'
+env_id = 'SteinerTree-v0'
+
 
 if env_id == 'ShortestPath-v0':
     has_mask = True
@@ -39,6 +41,7 @@ if env_id == 'ShortestPath-v0':
 elif env_id == 'SteinerTree-v0':
     has_mask = True
     mask_shape = (2*env_args['n_edges'],)
+    env_args['n_dests'] = 3
 
 
 # ===========================
@@ -59,8 +62,8 @@ eval_freq = 100
 eval_steps = 128
 
 anneal_lr = True
-learning_rate = 2.5e-4
-# learning_rate = 1e-3
+# learning_rate = 2.5e-4
+learning_rate = 1e-3
 
 gamma = 0.995
 gae = False # False seems to work better
@@ -77,7 +80,9 @@ max_grad_norm = 0.5
 # ====== Model Config =======
 # ===========================
 
-model_type = 'GNN'
+# model_type = 'GNN'
+# model_type = 'GNN_full' #TODO: Implement this
+model_type = 'Transformer'
 model_config = networks.model_configs.get_default_config(model_type)
 
 # ===========================
@@ -96,6 +101,20 @@ if __name__ == '__main__':
             )
         for _ in range(n_envs)])
     
+    # tmp_env = gym.make(env_id, **env_args)
+    # tmp_env.reset()
+    # mask = tmp_env.get_mask()
+    # for i in range(30):
+    #     p = mask / mask.sum()
+    #     action = np.random.choice(np.arange(mask.shape[0]), p=p)
+    #     obs, reward, done, _, info= tmp_env.step(action)
+    #     print(action, reward, done)
+    #     mask = info['mask']
+    #     if done:
+    #         tmp_env.reset()
+    #         mask = tmp_env.get_mask()
+    # 1/0
+            
     # env_args['is_eval_env'] = True
     eval_envs = gym.vector.AsyncVectorEnv([
         lambda:
@@ -110,7 +129,6 @@ if __name__ == '__main__':
     writer = SummaryWriter(f'runs/{run_name}')
     
     # Initializing the model
-    # model = Transformer(transformerconf).to(device)
     model = utils.get_model(model_type, model_config, env_id, env_args).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, eps=1e-5)
     
@@ -205,7 +223,7 @@ if __name__ == '__main__':
                         
                         ep_rew = info['final_info'][e]['episode']['r']
                         ep_len = info['final_info'][e]['episode']['l']
-                        opt = info['final_info'][e]['optimal_solution']
+                        opt = info['final_info'][e]['heuristic_solution']
                         
                         if solved:
                             opt_sols.append(opt)
