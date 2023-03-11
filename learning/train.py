@@ -146,9 +146,6 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
                         nextvalues = values_stack[t + 1]
                     returns_stack[t] = rewards_stack[t] + train_config.gamma * nextvalues * nextnonterminal
                 advantages_stack = returns_stack - values_stack
-        # print(rewards_stack)
-        # print(returns_stack)
-        # print(advantages_stack)
         
         # Batches of flattened trajectories
         b_obs = obs_stack.reshape((-1,) + envs.single_observation_space.shape)
@@ -174,13 +171,6 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
                 x, edge_features, edge_index = graph_envs.utils.devectorize_graph(b_obs[mb_inds], env_id, **env_args)
                 _, new_logprobs, entropy, new_values = utils.forward_pass(model, model_type, x, edge_features, edge_index, train_config.has_mask, b_masks[mb_inds], b_actions[mb_inds])
                 
-                
-                # embedding = model.encode(b_obs[mb_inds])
-                # if has_mask:
-                #     _, new_logprobs, entropy, new_values = model.decode(x=embedding, mask=b_masks[mb_inds], action=b_actions[mb_inds])
-                # else:
-                #     _, new_logprobs, entropy, new_values = model.decode(x=embedding, action=b_actions[mb_inds])
-                
                 logratio = new_logprobs - b_logprobs[mb_inds]
                 ratio = logratio.exp()
                 with torch.no_grad():
@@ -189,15 +179,12 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
                     clipfracs += [((ratio-1).abs() > train_config.clip_coef).float().mean().item()]
                     
                 
-                # print(ratio)
                 mb_advantages = b_advantages[mb_inds]
                 if train_config.adv_norm:
                     mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
                 pg_loss1 = -mb_advantages * ratio
                 pg_loss2 = -mb_advantages * ratio.clamp(1 - train_config.clip_coef, 1 + train_config.clip_coef)
-                # print(pg_loss1, pg_loss2)
                 pg_loss = torch.max(pg_loss1, pg_loss2)
-                # print(pg_loss)
                 
                 
                 new_values = new_values.view(-1)
@@ -221,9 +208,6 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
 
                 
                 loss.backward()
-                
-                # for p in model.parameters():
-                #     p.grad.data.clamp_(-max_grad_norm, max_grad_norm)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), train_config.max_grad_norm)
                 optimizer.step()
         
@@ -241,10 +225,6 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
         
         writer.add_scalar('charts/learning_rate', optimizer.param_groups[0]['lr'], global_step)
         writer.add_scalar('charts/sps', train_config.n_steps * train_config.n_envs / (time.time() - t_start), global_step)
-        # for param in model.parameters():
-        #     print('***')
-        #     print(torch.mean(param), torch.std(param))
-        #     print(torch.mean(param.grad), torch.std(param.grad))
-            
+
     envs.close()
     writer.close()
