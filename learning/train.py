@@ -106,12 +106,14 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
                         
                         
                         
-        writer.add_scalar('charts/ep_rew', np.mean(ep_rews), global_step)
-        writer.add_scalar('charts/ep_len', np.mean(ep_lens), global_step)
-        
+        writer.add_scalar('charts/ep_rew_avg', np.mean(ep_rews), global_step)
+        writer.add_scalar('charts/ep_len_avg', np.mean(ep_lens), global_step)
+        writer.add_scalar('charts/ep_rew_std', np.std(ep_rews), global_step)
+        writer.add_scalar('charts/ep_len_std', np.std(ep_lens), global_step)
         
         print('----------------------------------')
         print(f'Update: {update}, Mean Ep Rew: {np.mean(ep_rews)}, Mean Ep Len: {np.mean(ep_lens)}, Sample_size: {len(ep_rews)}')
+        print(f'Ep Rew std: {np.std(ep_rews)}, Ep Len std: {np.std(ep_lens)}')
         
         
         # Computing the returns
