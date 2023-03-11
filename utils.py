@@ -48,7 +48,8 @@ def forward_pass(model: torch.nn.Module,
                  edge_index: torch.Tensor,
                  has_mask: bool,
                  masks: torch.Tensor=None,
-                 actions: torch.Tensor=None):
+                 actions: torch.Tensor=None,
+                 pick_max: bool=False,):
     
     if model_type == 'GNN':
         model_input = graph_envs.utils.to_pyg_graph(x, edge_features, edge_index)
@@ -88,9 +89,9 @@ def forward_pass(model: torch.nn.Module,
     # model_input = x.reshape(-1, 10)
     
     if has_mask:    
-        action, logprob, entropy, value = model(model_input, masks, actions)
+        action, logprob, entropy, value = model(model_input, masks, actions, pick_max=pick_max)
     else:
-        action, logprob, entropy, value = model(model_input, actions)
+        action, logprob, entropy, value = model(model_input, actions, pick_max=pick_max)
         
     return action, logprob, entropy, value
         

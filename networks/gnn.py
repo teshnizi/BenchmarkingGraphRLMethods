@@ -77,7 +77,7 @@ class GNN(torch.nn.Module):
         return x, edge_features, global_features
     
     
-    def forward(self, batch_graph: pyg.data.Batch, mask: torch.Tensor, actions: torch.Tensor=None) -> torch.Tensor:
+    def forward(self, batch_graph: pyg.data.Batch, mask: torch.Tensor, actions: torch.Tensor=None, pick_max: bool=False) -> torch.Tensor:
         
         
         x, edge_features, global_features = self.encode(batch_graph)
@@ -94,7 +94,11 @@ class GNN(torch.nn.Module):
         dist = torch.distributions.Categorical(logits=logits)
         
         if actions is None:
-            actions = dist.sample()
+            
+            if pick_max:
+                actions = torch.argmax(logits, dim=-1)
+            else:
+                actions = dist.sample()
         
         logprobs = dist.log_prob(actions)
         entropy = dist.entropy()

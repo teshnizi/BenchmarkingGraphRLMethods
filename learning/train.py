@@ -5,6 +5,7 @@ import numpy as np
 import time 
 import graph_envs
 import utils 
+import learning.eval
 
 def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_type, env_id, env_args, device):
     
@@ -35,11 +36,11 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
     for update in range(train_config.num_updates):
         
         if update % train_config.eval_freq == 0:
-            # torch.save(model.state_dict(), f'./models/{run_name}.pth')
-            # eval_model(model, eval_envs, train_config.eval_steps,
-            #            has_mask=train_config.has_mask, device=device, seed=seed,
-            #            writer=writer, global_step=global_step,
-            #            pick_max=True, print_sol=False)
+            torch.save(model.state_dict(), f'./models/{run_name}.pth')
+            learning.eval.eval_model(model, model_type, env_id, env_args, eval_envs, train_config.eval_steps,
+                       has_mask=train_config.has_mask, device=device, seed=train_config.seed,
+                       writer=writer, global_step=global_step,
+                       pick_max=True, verbose=False)
             print('Implement Evaluation!')
             
             
@@ -54,9 +55,6 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
         # Collecting the trajectories
         ep_rews = []
         ep_lens = []
-        opt_sols = []
-        sol_costs = []
-        sols_found = []
 
         for step in range(train_config.n_steps):
             global_step += train_config.n_envs
@@ -103,37 +101,24 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
                         opt = info['final_info'][e]['heuristic_solution']
                         sol_cost = info['final_info'][e]['solution_cost']
                         
-                        if solved:
-                            opt_sols.append(opt)
-                            ep_lens.append(ep_len)
-                            ep_rews.append(ep_rew)
-                            sol_costs.append(sol_cost)
+                        ep_lens.append(ep_len)
+                        ep_rews.append(ep_rew)
                         
                         
-                        sols_found.append(solved)
                         
         writer.add_scalar('charts/ep_rew', np.mean(ep_rews), global_step)
         writer.add_scalar('charts/ep_len', np.mean(ep_lens), global_step)
-        writer.add_scalar('charts/solution_cost', np.mean(sol_costs), global_step)
-        writer.add_scalar('charts/solved', np.mean(sols_found), global_step)
         
         
         print('----------------------------------')
         print(f'Update: {update}, Mean Ep Rew: {np.mean(ep_rews)}, Mean Ep Len: {np.mean(ep_lens)}, Sample_size: {len(ep_rews)}')
-        print(f'Solved: {np.mean(sols_found)}, Mean Sol Cost: {np.mean(sol_costs)}, Mean Opt Sol: {np.mean(opt_sols)}')
         
         
         # Computing the returns
         with torch.no_grad():
-            # Getting the last value
-        
-            
+            # Getting the last value            
             x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
-            # print(x.T, '\n', edge_features.T, '\n', edge_index)
             _, _, _, next_value = utils.forward_pass(model, model_type, x, edge_features, edge_index, train_config.has_mask, next_mask, actions=None)
-            
-            
-                
             next_value = next_value.reshape(1, -1)
             
             if train_config.gae:
@@ -256,6 +241,10 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
         
         writer.add_scalar('charts/learning_rate', optimizer.param_groups[0]['lr'], global_step)
         writer.add_scalar('charts/sps', train_config.n_steps * train_config.n_envs / (time.time() - t_start), global_step)
-    
+        # for param in model.parameters():
+        #     print('***')
+        #     print(torch.mean(param), torch.std(param))
+        #     print(torch.mean(param.grad), torch.std(param.grad))
+            
     envs.close()
     writer.close()

@@ -63,8 +63,8 @@ train_config = {
 'mini_batch_size': 32,
 'n_epochs': 4,
 'n_eval_envs':4,
-'eval_freq': 100,
-'eval_steps': 64,
+'eval_freq': 10,
+'eval_steps': 128,
 'anneal_lr': True,
 # '#'  learning_rate : 2.5e-4
 'learning_rate': 1e-3,
@@ -91,9 +91,9 @@ train_config.seed = seed
 # ====== Model Config =======
 # ===========================
 
-# model_type = 'GNN'
+model_type = 'GNN'
 # model_type = 'GNN_full' #TODO: Implement this
-model_type = 'Transformer'
+# model_type = 'Transformer'
 model_config = networks.model_configs.get_default_config(model_type)
 
 # ===========================
@@ -134,5 +134,4 @@ if __name__ == '__main__':
     
     
     learning.train.train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_type, env_id, env_args, device)
-    
     
