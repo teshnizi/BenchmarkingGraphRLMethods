@@ -14,29 +14,13 @@ class DotDict(dict):
 
 def get_model(model_type, model_config, env_id, env_args):
     
-    if env_id == "ShortestPath-v0":
-        node_f = 2
-        edge_f = 1
-        action_type = "node"
-    elif env_id == "SteinerTree-v0":
-        node_f = 2
-        edge_f = 2
-        action_type = "edge"
-    elif env_id == "MaxIndependentSet-v0":
-        node_f = 2
-        edge_f = 1
-        action_type = "node"
-    elif env_id == "TSP-v0":
-        node_f = 1
-        edge_f = 1
-        action_type = "node"
+    node_f, edge_f, action_type = graph_envs.utils.get_env_info(env_id)
         
     if model_type.startswith("GNN"):
         return gnn.GNN(node_f=node_f, edge_f=edge_f, action_type=action_type, config=model_config)
         
     elif model_type == "Transformer":
         return transformer.Transformer(node_f=node_f, edge_f=edge_f, action_type=action_type, config=model_config)
-
     else:
         raise ValueError("Model type not supported")
 

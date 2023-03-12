@@ -31,10 +31,10 @@ env_args = {
     'weighted': True,
 }
 
-env_id = 'ShortestPath-v0'
+# env_id = 'ShortestPath-v0'
 # env_id = 'SteinerTree-v0'
 # env_id = 'MaxIndependentSet-v0'
-# env_id = 'TSP-v0'
+env_id = 'TSP-v0'
 
 
 if env_id == 'ShortestPath-v0':
@@ -62,12 +62,12 @@ train_config = {
 'total_steps': 5000000,
 'mini_batch_size': 32,
 'n_epochs': 4,
-'n_eval_envs':4,
-'eval_freq': 10,
-'eval_steps': 128,
+'n_eval_envs':1,
+'eval_freq': 20,
+'eval_steps': 512,
 'anneal_lr': True,
-# '#'  learning_rate : 2.5e-4
-'learning_rate': 1e-3,
+'learning_rate' : 2.5e-4,
+# 'learning_rate': 1e-3,
 'gamma': 0.995,
 'gae': False, # False seems to work better
 'gae_lambda': 0.95,

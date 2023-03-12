@@ -2,3 +2,4 @@ __pycache__/
 network/__pycache__/
 runs/
 models/
+tmp.py
