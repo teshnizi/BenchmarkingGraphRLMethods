@@ -7,14 +7,36 @@ import graph_envs
 import utils 
 import learning.eval
 
+
+    
 def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_type, env_id, env_args, device):
     
+    
+    if env_id == 'ShortestPath-v0':
+        has_mask = True
+        mask_shape = (env_args['n_nodes'],)
+    elif env_id == 'SteinerTree-v0':
+        has_mask = True
+        mask_shape = (2*env_args['n_edges'],)
+        env_args['n_dests'] = 5
+    elif env_id == 'MaxIndependentSet-v0':
+        has_mask = True
+        mask_shape = (env_args['n_nodes'],)
+    elif env_id == 'TSP-v0':
+        has_mask = True
+        mask_shape = (env_args['n_nodes'],)
+
+    train_config.has_mask = has_mask
+    train_config.mask_shape = mask_shape
+
     writer = SummaryWriter(f'runs/{run_name}')
     
     # Initializing the stacks
     obs_stack = torch.zeros((train_config.n_steps, train_config.n_envs) + envs.single_observation_space.shape).to(device)
     if train_config.has_mask:
         masks_stack = torch.zeros((train_config.n_steps, train_config.n_envs) + train_config.mask_shape).to(device) < 1
+    else:
+        masks_stack = None 
         
     action_stack = torch.zeros((train_config.n_steps, train_config.n_envs) + envs.single_action_space.shape).to(device)
     logprobs_stack = torch.zeros((train_config.n_steps, train_config.n_envs)).to(device)
@@ -34,15 +56,14 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
     global_step = 0
     
     for update in range(train_config.num_updates):
-        
+            
         if update % train_config.eval_freq == 0:
-            torch.save(model.state_dict(), f'./models/{run_name}.pth')
+            print("Evaluating the model...")
+            torch.save(model.state_dict(), f'./models/{run_name}_up{update}.pth')
             learning.eval.eval_model(model, model_type, env_id, env_args, eval_envs, train_config.eval_steps,
                        has_mask=train_config.has_mask, device=device, seed=train_config.seed,
                        writer=writer, global_step=global_step,
                        pick_max=True, verbose=False)
-            print('Implement Evaluation!')
-            
             
         t_start = time.time()
         
@@ -75,24 +96,18 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
             
             obs, reward, done, _, info = envs.step(action.cpu().numpy())
             rewards_stack[step] = torch.Tensor(reward).to(device)
-            # print('act! ', action, 'reward= ', reward)
+            
             
             next_obs = torch.Tensor(obs).to(device)
             if train_config.has_mask:
                 next_mask = torch.BoolTensor(np.stack(info['mask'], axis=0)).to(device)
                 
             next_done = torch.Tensor(done).to(device)
-
+            
             
             if 'final_info' in info:
                 for e in range(train_config.n_envs):
                     if info['final_info'][e] != None:
-                        # print('optimal solution: ', info['final_info'][e]['optimal_solution'])
-                        
-                        # print('---------')
-                        # print('Nodes: ', obs[e, 0:10])
-                        # gg = graph_envs.utils.devectorize_graph(torch.from_numpy(obs), env_id, **env_args)
-                        # print('Edges: \n', gg[2][0].T.cpu().numpy())
                         
                         solved = info['final_info'][e]['solved']
                         
@@ -113,7 +128,7 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
         
         print('----------------------------------')
         print(f'Update: {update}, Mean Ep Rew: {np.mean(ep_rews)}, Mean Ep Len: {np.mean(ep_lens)}, Sample_size: {len(ep_rews)}')
-        print(f'Ep Rew std: {np.std(ep_rews)}, Ep Len std: {np.std(ep_lens)}')
+        print(f'Ep Rew std: {np.std(ep_rews)}, Ep Len std: {np.std(ep_lens)}', flush=True)
         
         
         # Computing the returns

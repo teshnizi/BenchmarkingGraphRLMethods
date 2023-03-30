@@ -42,6 +42,9 @@ def eval_model(model, model_type, env_id, env_args, eval_envs, n_steps, has_mask
             
         next_done = torch.Tensor(done).to(device)
         
+        if verbose:
+            print(f'{step:3d}. Action: {action}, Reward: {reward}, Done: {done}')
+            
         if 'final_info' in info:
             for e in range(eval_envs.num_envs):
                 if info['final_info'][e] != None:
@@ -65,20 +68,25 @@ def eval_model(model, model_type, env_id, env_args, eval_envs, n_steps, has_mask
     opt_sols = np.array(opt_sols)
     sol_costs = np.array(sol_costs)
     
+    
     print('=============================')
     # print(f'Eval!, Mean Ep Rew: {np.mean(ep_rews)}, Mean Ep Len: {np.mean(ep_lens)}, Sample_size: {len(ep_rews)}')
     print(f'Solved: {np.mean(sols_found)}, Mean Sol Cost: {np.mean(sol_costs)}, Mean Opt Sol: {np.mean(opt_sols)}, Sample_size: {len(sols_found)}')
-    print(f'Overall Relative Gap: {(np.mean(sol_costs - opt_sols)) / np.mean(opt_sols)}')
-    print(f'Average Relative Gap: {np.mean((sol_costs - opt_sols) / opt_sols)}')
-    print(f'Std ratio: {np.std(sol_costs)/np.std(opt_sols)}')
+    if len(opt_sols) > 0:
+        print(f'Overall Relative Gap: {(np.mean(sol_costs - opt_sols)) / np.mean(opt_sols)}')
+        print(f'Average Relative Gap: {np.mean((sol_costs - opt_sols) / opt_sols)}')
+        print(f'Minimum Sol Cost: {np.min(sol_costs)}, Minimum Relative Gap: {np.min((sol_costs - opt_sols) / opt_sols)}')
+        print(f'Std ratio: {np.std(sol_costs)/np.std(opt_sols)}')
+        print(f'Std: {np.std((sol_costs - opt_sols) / (opt_sols))}', flush=True)
     
   
+    if writer != None:
     
-    writer.add_scalar('Eval/mean_solved', np.mean(sols_found), global_step)
-    writer.add_scalar('Eval/mean_opt_cost', np.mean(opt_sols), global_step)
-    writer.add_scalar('Eval/mean_sol_cost', np.mean(sol_costs), global_step)
-    writer.add_scalar('Eval/overall_rel_gap', (np.mean(sol_costs - opt_sols)) / np.mean(opt_sols), global_step)
-    writer.add_scalar('Eval/average_rel_gap', np.mean((sol_costs - opt_sols) / opt_sols), global_step)
-    writer.add_scalar('Eval/std_ratio', np.std(sol_costs)/np.std(opt_sols), global_step)
-    
-    return np.mean(sols_found), np.mean(sol_costs), np.mean(opt_sols), np.std(sol_costs)/np.std(opt_sols)
+        writer.add_scalar('Eval/mean_solved', np.mean(sols_found), global_step)
+        writer.add_scalar('Eval/mean_opt_cost', np.mean(opt_sols), global_step)
+        writer.add_scalar('Eval/mean_sol_cost', np.mean(sol_costs), global_step)
+        writer.add_scalar('Eval/overall_rel_gap', (np.mean(sol_costs - opt_sols)) / np.mean(opt_sols), global_step)
+        writer.add_scalar('Eval/average_rel_gap', np.mean((sol_costs - opt_sols) / opt_sols), global_step)
+        writer.add_scalar('Eval/std_ratio', np.std(sol_costs)/np.std(opt_sols), global_step)
+        
+    return np.mean(sols_found), np.mean(sol_costs), np.mean(opt_sols), 
