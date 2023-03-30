@@ -12,7 +12,7 @@ class DotDict(dict):
     
 
 
-def get_model(model_type, model_config, env_id, env_args):
+def get_model(model_type, model_config, env_id):
     
     node_f, edge_f, action_type = graph_envs.utils.get_env_info(env_id)
         

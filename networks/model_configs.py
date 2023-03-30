@@ -6,15 +6,15 @@ GNN_config = DotDict({
     'norm': True,
     'activation': torch.nn.GELU,
     'layers': 6,
-    'hidden': 32,
+    'hidden': 128,
 })
 
 Transformer_config = DotDict({
     'dropout': 0.1,
     'norm': True,
     'activation': torch.nn.GELU,
-    'layers': 5,
-    'hidden': 32,
+    'layers': 10,
+    'hidden': 64,
     'att_heads': 2,
     'max_seq_len': 100,
 })

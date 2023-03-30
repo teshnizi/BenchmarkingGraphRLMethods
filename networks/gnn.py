@@ -16,22 +16,26 @@ class GNN(torch.nn.Module):
         self.node_proc = torch.nn.Sequential(
             torch.nn.Linear(self.node_f, self.config.hidden),
             config.activation(),
+            torch.nn.Dropout(config.dropout),
         )
         
         self.edge_proc = torch.nn.Sequential(
             torch.nn.Linear(self.edge_f, self.config.hidden),
             config.activation(),
+            torch.nn.Dropout(config.dropout),
         )
-
-        # self.norms = torch.nn.ModuleList([
-        #     torch.nn.LayerNorm(self.config.hidden) for _ in range(config.layers)])
 
         self.init_u = torch.nn.Parameter(torch.zeros(1, self.config.hidden))
         torch.nn.init.xavier_uniform_(self.init_u)
-    
-        self.gnn_layers = torch.nn.ModuleList([
-            # pyg.nn.GATConv(in_channels=self.config.hidden, out_channels=self.config.hidden, dropout=config.dropout) for _ in range(config.layers)])
-            MyGNNLayer(self.config.hidden, config.activation, 2, config.norm, config.dropout) for _ in range(config.layers)])
+        
+        # self.gnn_layers = torch.nn.ModuleList([
+        #     # pyg.nn.GATConv(in_channels=self.config.hidden, out_channels=self.config.hidden, dropout=config.dropout) for _ in range(config.layers)])
+        #     MyGNNLayer(self.config.hidden, config.activation, 2, config.norm, config.dropout) for _ in range(config.layers)])
+        
+        self.norm = torch.nn.LayerNorm(self.config.hidden)
+        
+        self.gnn_layer = MyGNNLayer(self.config.hidden, config.activation, 2, config.norm, config.dropout)
+        # self.gat_layer = pyg.nn.GATv2Conv(in_channels=self.config.hidden, out_channels=self.config.hidden//2, dropout=config.dropout, heads=2, edge_dim=self.config.hidden)
         
         # if self.action_type == 'node':
         # self.action_net = ResidualMLP(10, self.config.hidden, 10, config.activation, 2, norm=False, dropout=config.dropout)
@@ -65,15 +69,15 @@ class GNN(torch.nn.Module):
         
         
         for i in range(self.config.layers):
-            x, edge_features, global_features = self.gnn_layers[i](x, edge_index, edge_features, global_features, batch)
-
-            # x = x + self.gnn_layers[i](x, edge_index)
-            # x = self.norms[i](x)
             
-            pass
+            x, edge_features, global_features = self.gnn_layer(x, edge_index, edge_features, global_features, batch)
+            # x = x + self.gat_layer(x, edge_index, edge_features)
+            
+            # x = self.norm(x)
+            
+            
         
         # global_features = x.reshape(batch_graph.num_graphs, -1, self.config.hidden).mean(dim=1)
-        
         return x, edge_features, global_features
     
     

@@ -3,3 +3,5 @@ network/__pycache__/
 runs/
 models/
 tmp.py
+graph.png
+nohup.out
