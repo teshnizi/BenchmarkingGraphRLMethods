@@ -9,6 +9,7 @@ import utils
 
 def eval_model(model, model_type, env_id, env_args, eval_envs, n_steps, has_mask, device, seed, writer, global_step, pick_max=True, verbose=False):
     
+    
     next_obs, info = eval_envs.reset(seed=seed)
     next_obs = torch.Tensor(next_obs).to(device)
     
@@ -71,11 +72,12 @@ def eval_model(model, model_type, env_id, env_args, eval_envs, n_steps, has_mask
     
     print('=============================')
     # print(f'Eval!, Mean Ep Rew: {np.mean(ep_rews)}, Mean Ep Len: {np.mean(ep_lens)}, Sample_size: {len(ep_rews)}')
-    print(f'Solved: {np.mean(sols_found)}, Mean Sol Cost: {np.mean(sol_costs)}, Mean Opt Sol: {np.mean(opt_sols)}, Sample_size: {len(sols_found)}')
+    print(f'Solved: {np.mean(sols_found)}, Mean Solution Cost: {np.mean(sol_costs)}, Mean Opt Cost: {np.mean(opt_sols)}, Sample_size: {len(sols_found)}')
     if len(opt_sols) > 0:
         print(f'Overall Relative Gap: {(np.mean(sol_costs - opt_sols)) / np.mean(opt_sols)}')
         print(f'Average Relative Gap: {np.mean((sol_costs - opt_sols) / opt_sols)}')
-        print(f'Minimum Sol Cost: {np.min(sol_costs)}, Minimum Relative Gap: {np.min((sol_costs - opt_sols) / opt_sols)}')
+        print(f'Minimum Sol Cost: {np.min(sol_costs)}')
+        print(f'Minimum Relative Gap: {np.min((sol_costs - opt_sols) / opt_sols)}')
         print(f'Std ratio: {np.std(sol_costs)/np.std(opt_sols)}')
         print(f'Std: {np.std((sol_costs - opt_sols) / (opt_sols))}', flush=True)
     

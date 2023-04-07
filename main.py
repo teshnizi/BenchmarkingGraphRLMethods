@@ -26,15 +26,23 @@ seed = None
 device = torch.device('cpu')
 
 env_args = {
-    'n_nodes': 10,
-    'n_edges': 20,
+    'n_nodes': 20,
+    'n_edges': -1,
+    'n_dests': 5,
     'weighted': True,
+    # 'target_count': 10,
+    'parenting': 'Advanced',
 }
 
+if env_args['n_edges'] == -1:
+    env_args['n_edges'] = int((env_args['n_nodes'] * (env_args['n_nodes'] - 1) // 2) * 0.30)
+    
 # env_id = 'ShortestPath-v0'
-env_id = 'SteinerTree-v0'
+# env_id = 'SteinerTree-v0'
 # env_id = 'MaxIndependentSet-v0'
 # env_id = 'TSP-v0'
+# env_id = 'DistributionCenter-v0'
+env_id = 'MulticastRouting-v0'
 
 
 # ===========================
@@ -52,7 +60,7 @@ train_config = {
 'eval_steps': 256,
 'anneal_lr': True,
 # 'learning_rate' : 2.5e-4,
-'learning_rate': 1e-3,
+'learning_rate': 5e-4,
 'gamma': 0.995,
 'gae': False, # False seems to work better
 'gae_lambda': 0.95,
@@ -67,7 +75,7 @@ train_config = utils.DotDict(train_config)
 
 train_config.batch_size = (train_config.n_envs * train_config.n_steps)
 # train_config.num_updates = (train_config.total_steps // train_config.batch_size)
-train_config.num_updates = 200
+train_config.num_updates = 1000
 
 train_config.n_mini_batches = (train_config.batch_size // train_config.mini_batch_size)
 train_config.seed = seed
@@ -127,3 +135,4 @@ if __name__ == '__main__':
             
         learning.train.train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_type, env_id, env_args, device)
         break
+    

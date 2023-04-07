@@ -6,10 +6,12 @@ import time
 import graph_envs
 import utils 
 import learning.eval
+import gymnasium as gym
 
-
+import graph_envs.utils
     
 def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_type, env_id, env_args, device):
+    
     
     
     if env_id == 'ShortestPath-v0':
@@ -25,7 +27,16 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
     elif env_id == 'TSP-v0':
         has_mask = True
         mask_shape = (env_args['n_nodes'],)
+    elif env_id == 'DistributionCenter-v0':
+        has_mask = True
+        mask_shape = (env_args['n_nodes'],)
+    elif env_id == 'MulticastRouting-v0':
+        has_mask = True
+        mask_shape = (2*env_args['n_edges'],)
+    else:
+        assert False, f'Unknown env_id: {env_id}'
 
+    
     train_config.has_mask = has_mask
     train_config.mask_shape = mask_shape
 
