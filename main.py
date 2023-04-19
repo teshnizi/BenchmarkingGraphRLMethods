@@ -2,7 +2,7 @@
 import gymnasium as gym
 import torch
 import numpy as np 
-import time 
+import time
 
 
 import graph_envs
@@ -23,15 +23,15 @@ seed = None
 # ======= Env Config ========
 # ===========================
 
-device = torch.device('cpu')
+device = torch.device('cuda:7')
 
 env_args = {
-    'n_nodes': 20,
+    'n_nodes': 30,
     'n_edges': -1,
-    'n_dests': 5,
+    'n_dests': 10,
     'weighted': True,
     # 'target_count': 10,
-    'parenting': 'Advanced',
+    'parenting': 3,
 }
 
 if env_args['n_edges'] == -1:
@@ -57,7 +57,7 @@ train_config = {
 'n_epochs': 4,
 'n_eval_envs': 4,
 'eval_freq': 10,
-'eval_steps': 256,
+'eval_steps': 512,
 'anneal_lr': True,
 # 'learning_rate' : 2.5e-4,
 'learning_rate': 5e-4,
@@ -84,8 +84,8 @@ train_config.seed = seed
 # ====== Model Config =======
 # ===========================
 
-model_type = 'GNN'
-# model_type = 'Transformer'
+# model_type = 'GNN'
+model_type = 'Transformer'
 model_config = networks.model_configs.get_default_config(model_type)
 
 # ===========================
@@ -96,7 +96,7 @@ import graph_envs.steiner_tree
 if __name__ == '__main__':
     
     # Initializing the tensorboard writer
-    run_name = f"run_{int(time.time())%1e7}_{env_id}_{model_type}_N{env_args['n_nodes']}_E{env_args['n_edges']}"
+    run_name = f"run_{int(time.time())%1e7}_{env_id}_{model_type}_N{env_args['n_nodes']}_E{env_args['n_edges']}_Parenting{env_args['parenting']}"
     
     # Initializing the model
     model = utils.get_model(model_type, model_config, env_id).to(device)
@@ -111,6 +111,7 @@ if __name__ == '__main__':
         
         print('*-'*10)
         print('Nodes: ', env_args['n_nodes'], 'Edges: ', env_args['n_edges'])
+        print('Env: ', env_id, ' || Model: ', model_type, ' || Parenting: ', env_args["parenting"])
         print('*-'*10)
         
         # Initializing the environments

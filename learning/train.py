@@ -13,7 +13,6 @@ import graph_envs.utils
 def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_type, env_id, env_args, device):
     
     
-    
     if env_id == 'ShortestPath-v0':
         has_mask = True
         mask_shape = (env_args['n_nodes'],)
@@ -129,7 +128,6 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
                         
                         ep_lens.append(ep_len)
                         ep_rews.append(ep_rew)
-                        
                         
                         
         writer.add_scalar('charts/ep_rew_avg', np.mean(ep_rews), global_step)
@@ -256,3 +254,4 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
 
     envs.close()
     writer.close()
+    

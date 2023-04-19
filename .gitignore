@@ -5,3 +5,4 @@ models/
 tmp.py
 graph.png
 nohup.out
+csv_output/

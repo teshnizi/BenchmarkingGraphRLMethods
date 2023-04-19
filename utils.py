@@ -3,6 +3,9 @@ import torch
 import graph_envs
 import torch.nn as nn 
 import torch_geometric as pyg
+import networkx as nx 
+
+import matplotlib.pyplot as plt
 
 class DotDict(dict):
     """dot.notation access to dictionary attributes"""
@@ -79,3 +82,24 @@ def forward_pass(model: torch.nn.Module,
         
     return action, logprob, entropy, value
         
+
+
+
+def draw_graph(G, file_name):
+    edge_color = ['orange' if \
+        (G.edges[(u,v)]['edge_attr'][1] == 1 or G.edges[(v,u)]['edge_attr'][1] == 1)\
+         else 'black' for (u,v) in G.edges]
+    node_color = ['red' if G.nodes[n]['x'][1] == 1 else 'grey' for n in G.nodes]
+    node_color[0] = 'orange'
+    
+    
+    for e in G.edges:
+        # print(G.edges[e], G.edges[e]['edge_attr'])
+        G.edges[e]['edge_attr'] = round(G.edges[e]['edge_attr'][0] * 10)/10
+    
+    # save image of graph to file:
+    layout = nx.kamada_kawai_layout(G)
+    nx.draw(G, pos=layout, with_labels=True, edge_color=edge_color, node_color=node_color)
+    nx.draw_networkx_edge_labels(G, pos=layout, edge_labels=nx.get_edge_attributes(G, 'edge_attr'), font_color='red')
+    plt.savefig(file_name)
+    
