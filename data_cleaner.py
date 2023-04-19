@@ -27,3 +27,5 @@ for run_folder in os.listdir(runs_folder):
                 csv_path = os.path.join(output_folder, csv_file)
                 event_to_csv(event_path, csv_path)
                 break
+
+
