@@ -85,17 +85,20 @@ def forward_pass(model: torch.nn.Module,
 
 
 
-def draw_graph(G, file_name):
-    edge_color = ['orange' if \
-        (G.edges[(u,v)]['edge_attr'][1] == 1 or G.edges[(v,u)]['edge_attr'][1] == 1)\
-         else 'black' for (u,v) in G.edges]
+def draw_graph(G, file_name, edges_taken=[]):
+    
+    # edge_color = ['orange' if \
+    #     (G.edges[(u,v)]['edge_attr'][1] == 1 or G.edges[(v,u)]['edge_attr'][1] == 1)\
+    #      else 'black' for (u,v) in G.edges]
+    edge_color = ['orange' if ((u,v) in edges_taken) or ((v,u) in edges_taken) else 'black' for (u,v) in G.edges]
     node_color = ['red' if G.nodes[n]['x'][1] == 1 else 'grey' for n in G.nodes]
-    node_color[0] = 'orange'
+    node_color[edges_taken[0][0]] = 'orange'
     
     
     for e in G.edges:
         # print(G.edges[e], G.edges[e]['edge_attr'])
-        G.edges[e]['edge_attr'] = round(G.edges[e]['edge_attr'][0] * 10)/10
+        # G.edges[e]['edge_attr'] = round(G.edges[e]['edge_attr'][0] * 10)/10
+        G.edges[e]['edge_attr'] = round(G.edges[e]['edge_attr'] * 10)/10
     
     # save image of graph to file:
     layout = nx.kamada_kawai_layout(G)

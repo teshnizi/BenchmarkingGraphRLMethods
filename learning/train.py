@@ -32,6 +32,9 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
     elif env_id == 'MulticastRouting-v0':
         has_mask = True
         mask_shape = (2*env_args['n_edges'],)
+    elif env_id == 'LongestPath-v0':
+        has_mask = True
+        mask_shape = (env_args['n_nodes'],)
     else:
         assert False, f'Unknown env_id: {env_id}'
 
@@ -69,7 +72,8 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
             
         if update % train_config.eval_freq == 0:
             print("Evaluating the model...")
-            torch.save(model.state_dict(), f'./models/{run_name}_up{update}.pth')
+            if (update % (10*train_config.eval_freq) == 0) and (update > 0):
+                torch.save(model.state_dict(), f'./models/{run_name}_up{update}.pth')
             learning.eval.eval_model(model, model_type, env_id, env_args, eval_envs, train_config.eval_steps,
                        has_mask=train_config.has_mask, device=device, seed=train_config.seed,
                        writer=writer, global_step=global_step,

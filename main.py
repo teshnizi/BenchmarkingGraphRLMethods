@@ -18,20 +18,19 @@ np.set_printoptions(suppress=True, precision=2, threshold=1000)
 
 seed = None 
 
-
 # ===========================
 # ======= Env Config ========
 # ===========================
 
-device = torch.device('cuda:7')
+device = torch.device('cuda:0')
 
 env_args = {
-    'n_nodes': 30,
+    'n_nodes': 10,
     'n_edges': -1,
-    'n_dests': 10,
+    # 'n_dests': 10,
     'weighted': True,
     # 'target_count': 10,
-    'parenting': 3,
+    'parenting': -1,
 }
 
 if env_args['n_edges'] == -1:
@@ -42,7 +41,8 @@ if env_args['n_edges'] == -1:
 # env_id = 'MaxIndependentSet-v0'
 # env_id = 'TSP-v0'
 # env_id = 'DistributionCenter-v0'
-env_id = 'MulticastRouting-v0'
+# env_id = 'MulticastRouting-v0'
+env_id = 'LongestPath-v0'
 
 
 # ===========================

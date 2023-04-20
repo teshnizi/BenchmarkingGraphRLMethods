@@ -2,23 +2,21 @@ import gymnasium as gym
 import torch 
 import numpy as np 
 import torch_geometric as pyg 
-import networkx as nx 
-import matplotlib.pyplot as plt
 
 import graph_envs.utils
 
 import networks.model_configs
 import utils 
-import learning.eval
+# import learning.eval
 
 
 env_args = {
     'n_nodes': 10,
     'n_edges': -1,
-    'n_dests': 5,
+    # 'n_dests': 5,
     'weighted': True,
     # 'target_count': 10,
-    'parenting': 4,
+    # 'parenting': 4,
 }
 
 if env_args['n_edges'] == -1:
@@ -32,7 +30,8 @@ device = torch.device('cpu')
 # env_id = 'MaxIndependentSet-v0'
 # env_id = 'TSP-v0'
 # env_id = 'DistributionCenter-v0'
-env_id = 'MulticastRouting-v0'
+# env_id = 'MulticastRouting-v0'
+env_id = 'LongestPath-v0'
 
 
 if env_id == 'ShortestPath-v0':
@@ -54,16 +53,18 @@ elif env_id == 'DistributionCenter-v0':
 elif env_id == 'MulticastRouting-v0':
     has_mask = True
     mask_shape = (2*env_args['n_edges'],)
+elif env_id == 'LongestPath-v0':
+    has_mask = True
+    mask_shape = (env_args['n_nodes'],)
 
-
-# model_type = 'GNN'
-model_type = 'Transformer'
+model_type = 'GNN'
+# model_type = 'Transformer'
 
 
 if __name__ == '__main__':
     
     params_path = "models/" +\
-        "run_1405597.0_MulticastRouting-v0_Transformer_N10_E13_up520.pth"
+        "run_1950302.0_LongestPath-v0_GNN_N10_E13_Parenting-1_up150.pth"
     
     model_config = networks.model_configs.get_default_config(model_type)
     model = utils.get_model(model_type, model_config, env_id).to(device)
@@ -75,7 +76,7 @@ if __name__ == '__main__':
     env = gym.vector.AsyncVectorEnv([
         lambda:
             gym.wrappers.RecordEpisodeStatistics(
-                gym.make(env_id, **env_args)   
+                gym.make(env_id, **env_args) 
             )
         for _ in range(1)])
     
@@ -85,7 +86,7 @@ if __name__ == '__main__':
         print('----------------------')
         print('------', sd, '------')
         print('----------------------')
-        next_obs, info = env.reset(seed=sd)
+        next_obs, info = env.reset(seed=None)
         next_obs = torch.Tensor(next_obs).to(device)
         
         if has_mask:
@@ -123,6 +124,9 @@ if __name__ == '__main__':
         print(f'Total Reward: {total_reward[0]}')
         print(f'Heuristic Solution: {info["final_info"][0]["heuristic_solution"]}, \nSolution Cost: {info["final_info"][0]["solution_cost"]}')
         print(f'Solved: {info["final_info"][0]["solved"]}')
+        
+        edges_taken = info['final_info'][0]['edges_taken']
+        
         # if info["final_info"][0]["solved"] == False:
         #     break
     
@@ -131,10 +135,11 @@ if __name__ == '__main__':
     # print(next_obs.shape)
     # print(info['final_observation'][0][0].shape)
     # x, edge_features, edge_index = graph_envs.utils.devectorize_graph(info['final_observation'], env_id, **env_args)
+
     data = pyg.data.Data(x=x[0], edge_index=edge_index[0].T, edge_attr=edge_features[0])
     G = pyg.utils.to_networkx(data, edge_attrs=['edge_attr'], node_attrs=['x'])
     
-    utils.draw_graph(G, 'graph.png')
+    utils.draw_graph(G, 'graph.png', edges_taken=edges_taken)
     
     n = env_args['n_nodes']
     

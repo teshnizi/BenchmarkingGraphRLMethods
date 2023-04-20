@@ -13,7 +13,7 @@ Transformer_config = DotDict({
     'dropout': 0.1,
     'norm': True,
     'activation': torch.nn.GELU,
-    'layers': 10,
+    'layers': 12,
     'hidden': 64,
     'att_heads': 2,
     'max_seq_len': 100,
