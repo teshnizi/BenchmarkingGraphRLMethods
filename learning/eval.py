@@ -9,6 +9,7 @@ import utils
 
 def eval_model(model, model_type, env_id, env_args, eval_envs, n_steps, has_mask, device, seed, writer, global_step, pick_max=True, verbose=False):
     
+    model.eval()
     
     next_obs, info = eval_envs.reset(seed=seed)
     next_obs = torch.Tensor(next_obs).to(device)
@@ -27,8 +28,9 @@ def eval_model(model, model_type, env_id, env_args, eval_envs, n_steps, has_mask
     opt_sols = []
     sol_costs = []
     sols_found = []
-        
-    for step in range(n_steps):
+    
+    
+    while True:
         
         with torch.no_grad():
             x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
@@ -64,7 +66,10 @@ def eval_model(model, model_type, env_id, env_args, eval_envs, n_steps, has_mask
                         sol_costs.append(sol_cost)
                     
                     sols_found.append(solved)
-    
+        
+        if len(sols_found) >= n_steps:
+            break
+        
     sols_found = np.array(sols_found)
     opt_sols = np.array(opt_sols)
     sol_costs = np.array(sol_costs)
@@ -81,7 +86,18 @@ def eval_model(model, model_type, env_id, env_args, eval_envs, n_steps, has_mask
         print(f'Std ratio: {np.std(sol_costs)/np.std(opt_sols)}')
         print(f'Std: {np.std((sol_costs - opt_sols) / (opt_sols))}', flush=True)
     
-  
+    # k=0
+    # print('-----------------------------')
+    # for i in range(len(sols_found)):
+    #     if sols_found[i]:
+    #         cost = sol_costs[i-k]
+    #     else:
+    #         cost = -1
+    #         k += 1
+    #     print(i, sols_found[i], cost)
+    # print(k)
+    # print('-----------------------------')
+    
     if writer != None:
     
         writer.add_scalar('Eval/mean_solved', np.mean(sols_found), global_step)

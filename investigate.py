@@ -7,16 +7,15 @@ import graph_envs.utils
 
 import networks.model_configs
 import utils 
-# import learning.eval
+import learning.eval
 
 
 env_args = {
-    'n_nodes': 10,
+    'n_nodes': 30,
     'n_edges': -1,
-    # 'n_dests': 5,
+    # 'n_dests': 4,
     'weighted': True,
-    # 'target_count': 10,
-    # 'parenting': 4,
+    'parenting': 2,
 }
 
 if env_args['n_edges'] == -1:
@@ -64,7 +63,9 @@ model_type = 'GNN'
 if __name__ == '__main__':
     
     params_path = "models/" +\
-        "run_1950302.0_LongestPath-v0_GNN_N10_E13_Parenting-1_up150.pth"
+        "run_1974127.0_LongestPath-v0_GNN_N30_E130_Parenting1_up900.pth"
+        # "run_1974172.0_LongestPath-v0_GNN_N30_E130_Parenting2_up900.pth"
+        
     
     model_config = networks.model_configs.get_default_config(model_type)
     model = utils.get_model(model_type, model_config, env_id).to(device)
@@ -82,80 +83,78 @@ if __name__ == '__main__':
     
     # env = gym.make(env_id, **env_args)
     
-    for sd in range(27, 28):
-        print('----------------------')
-        print('------', sd, '------')
-        print('----------------------')
-        next_obs, info = env.reset(seed=None)
-        next_obs = torch.Tensor(next_obs).to(device)
+    # for sd in range(27, 28):
+    
+    #     print('----------------------')
+    #     print('------', sd, '------')
+    #     print('----------------------')
+    #     next_obs, info = env.reset(seed=12)
+    #     next_obs = torch.Tensor(next_obs).to(device)
         
-        if has_mask:
-            next_mask = torch.BoolTensor(np.stack(info['mask'], axis=0)).to(device)
-        next_done = False
+    #     if has_mask:
+    #         next_mask = torch.BoolTensor(np.stack(info['mask'], axis=0)).to(device)
+    #     next_done = False
          
-        with torch.no_grad():
-            x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
-            action, _, _, _ = utils.forward_pass(model, model_type, x, edge_features, edge_index, has_mask, next_mask, actions=None)
+    #     with torch.no_grad():
+    #         x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
+    #         action, _, _, _ = utils.forward_pass(model, model_type, x, edge_features, edge_index, has_mask, next_mask, actions=None)
         
-        if has_mask:
-            next_mask = torch.BoolTensor(np.stack(info['mask'], axis=0)).to(device)
+    #     if has_mask:
+    #         next_mask = torch.BoolTensor(np.stack(info['mask'], axis=0)).to(device)
             
-        print(f'Investigating {params_path} on {env_id} with {model_type} model')
+    #     print(f'Investigating {params_path} on {env_id} with {model_type} model')
         
-        for step in range(100):
-            print('============================')
-            with torch.no_grad():
-                x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
-                action, _, _, _ = utils.forward_pass(model, model_type, x, edge_features, edge_index, has_mask, next_mask, actions=None, pick_max=True)
+    #     for step in range(100):
+    #         print('============================')
+    #         with torch.no_grad():
+    #             x, edge_features, edge_index = graph_envs.utils.devectorize_graph(next_obs, env_id, **env_args)
+    #             action, _, _, _ = utils.forward_pass(model, model_type, x, edge_features, edge_index, has_mask, next_mask, actions=None, pick_max=True)
             
-            obs, reward, done, _, info = env.step(action.cpu().numpy())
-            next_obs = torch.Tensor(obs).to(device)
+    #         obs, reward, done, _, info = env.step(action.cpu().numpy())
+    #         next_obs = torch.Tensor(obs).to(device)
             
-            if has_mask:
-                next_mask = torch.BoolTensor(np.stack(info['mask'], axis=0)).to(device)     
+    #         if has_mask:
+    #             next_mask = torch.BoolTensor(np.stack(info['mask'], axis=0)).to(device)     
             
-            next_done = torch.Tensor(done).to(device)
-            print(f'{step:3d}. Action: {action[0].item()}, Reward: {reward[0]:.2f}, Done: {done[0]}', flush=True)
+    #         next_done = torch.Tensor(done).to(device)
+    #         print(f'{step:3d}. Action: {action[0].item()}, Reward: {reward[0]:.2f}, Done: {done[0]}', flush=True)
             
-            if done[0]:
-                break
+    #         if done[0]:
+    #             break
         
-        total_reward = info['final_info'][0]['episode']['r']
-        print(f'Total Reward: {total_reward[0]}')
-        print(f'Heuristic Solution: {info["final_info"][0]["heuristic_solution"]}, \nSolution Cost: {info["final_info"][0]["solution_cost"]}')
-        print(f'Solved: {info["final_info"][0]["solved"]}')
+    #     total_reward = info['final_info'][0]['episode']['r']
+    #     print(f'Total Reward: {total_reward[0]}')
+    #     print(f'Heuristic Solution: {info["final_info"][0]["heuristic_solution"]}, \nSolution Cost: {info["final_info"][0]["solution_cost"]}')
+    #     print(f'Solved: {info["final_info"][0]["solved"]}')
         
-        edges_taken = info['final_info'][0]['edges_taken']
+    #     edges_taken = info['final_info'][0]['edges_taken']
         
-        # if info["final_info"][0]["solved"] == False:
-        #     break
+    #     # if info["final_info"][0]["solved"] == False:
+    #     #     break
     
-    
-    # print(info)
-    # print(next_obs.shape)
-    # print(info['final_observation'][0][0].shape)
     # x, edge_features, edge_index = graph_envs.utils.devectorize_graph(info['final_observation'], env_id, **env_args)
-
-    data = pyg.data.Data(x=x[0], edge_index=edge_index[0].T, edge_attr=edge_features[0])
-    G = pyg.utils.to_networkx(data, edge_attrs=['edge_attr'], node_attrs=['x'])
+    # data = pyg.data.Data(x=x[0], edge_index=edge_index[0].T, edge_attr=edge_features[0])
+    # G = pyg.utils.to_networkx(data, edge_attrs=['edge_attr'], node_attrs=['x'])
     
-    utils.draw_graph(G, 'graph.png', edges_taken=edges_taken)
+    # utils.draw_graph(G, 'graph.png', edges_taken=edges_taken)
+    # utils.draw_graph(G, 'graph.png', edges_taken=None)
     
     n = env_args['n_nodes']
     
-    # for m in range(n, (n*n)//2, 10):
-    #     # env_args['n_edges'] = m    
+    for m in range(n, (n*n)//2, 10):
+        # env_args['n_edges'] = m    
             
-    #     env = gym.vector.AsyncVectorEnv([
-    #     lambda:
-    #         gym.wrappers.RecordEpisodeStatistics(
-    #             gym.make(env_id, **env_args)   
-    #         )
-    #     for _ in range(8)])
+        env = gym.vector.AsyncVectorEnv([
+        lambda:
+            gym.wrappers.RecordEpisodeStatistics(
+                gym.make(env_id, **env_args)   
+            )
+        for _ in range(1)])
         
-    #     print('---------')
-    #     print(f'Number of nodes: {env_args["n_nodes"]}')
-    #     print(f'Number of edges: {env_args["n_edges"]}')     
-    #     learning.eval.eval_model(model, model_type, env_id, env_args, env, n_steps=env_args["n_nodes"]*2*16, has_mask=has_mask, device=device, seed=None, writer=None, global_step=0, pick_max=False, verbose=False)
-    #     break
+        print('---------')
+        print(f'Number of nodes: {env_args["n_nodes"]}')
+        print(f'Number of edges: {env_args["n_edges"]}')     
+        learning.eval.eval_model(model, model_type, env_id, env_args, env, n_steps=200, has_mask=has_mask, device=device, seed=1234, writer=None, global_step=0, pick_max=False, verbose=False)
+        
+        break
         

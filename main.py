@@ -22,15 +22,15 @@ seed = None
 # ======= Env Config ========
 # ===========================
 
-device = torch.device('cuda:0')
+device = torch.device('cuda:7')
 
 env_args = {
-    'n_nodes': 10,
+    'n_nodes': 30,
     'n_edges': -1,
     # 'n_dests': 10,
-    'weighted': True,
+    # 'weighted': True,
     # 'target_count': 10,
-    'parenting': -1,
+    'parenting': 1,
 }
 
 if env_args['n_edges'] == -1:
@@ -42,7 +42,8 @@ if env_args['n_edges'] == -1:
 # env_id = 'TSP-v0'
 # env_id = 'DistributionCenter-v0'
 # env_id = 'MulticastRouting-v0'
-env_id = 'LongestPath-v0'
+# env_id = 'LongestPath-v0'
+env_id = 'DensestSubgraph-v0'
 
 
 # ===========================
@@ -57,7 +58,7 @@ train_config = {
 'n_epochs': 4,
 'n_eval_envs': 4,
 'eval_freq': 10,
-'eval_steps': 512,
+'eval_steps': 100,
 'anneal_lr': True,
 # 'learning_rate' : 2.5e-4,
 'learning_rate': 5e-4,
@@ -84,8 +85,8 @@ train_config.seed = seed
 # ====== Model Config =======
 # ===========================
 
-# model_type = 'GNN'
-model_type = 'Transformer'
+model_type = 'GNN'
+# model_type = 'Transformer'
 model_config = networks.model_configs.get_default_config(model_type)
 
 # ===========================

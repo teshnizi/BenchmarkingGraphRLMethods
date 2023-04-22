@@ -35,9 +35,12 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
     elif env_id == 'LongestPath-v0':
         has_mask = True
         mask_shape = (env_args['n_nodes'],)
+    elif env_id == 'DensestSubgraph-v0':
+        has_mask = True
+        mask_shape = (env_args['n_nodes'],)
     else:
         assert False, f'Unknown env_id: {env_id}'
-
+        
     
     train_config.has_mask = has_mask
     train_config.mask_shape = mask_shape
@@ -74,10 +77,11 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
             print("Evaluating the model...")
             if (update % (10*train_config.eval_freq) == 0) and (update > 0):
                 torch.save(model.state_dict(), f'./models/{run_name}_up{update}.pth')
+            print(train_config.seed)
             learning.eval.eval_model(model, model_type, env_id, env_args, eval_envs, train_config.eval_steps,
                        has_mask=train_config.has_mask, device=device, seed=train_config.seed,
                        writer=writer, global_step=global_step,
-                       pick_max=True, verbose=False)
+                       pick_max=False, verbose=False)
             
         t_start = time.time()
         
