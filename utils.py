@@ -1,4 +1,4 @@
-from networks import gnn, transformer
+from networks import gnn, transformer, algo_gcn, algo_gat, algo_gtn
 import torch
 import graph_envs
 import torch.nn as nn 
@@ -19,11 +19,16 @@ def get_model(model_type, model_config, env_id):
     
     node_f, edge_f, action_type = graph_envs.utils.get_env_info(env_id)
         
-    if model_type.startswith("GNN"):
+    if model_type == "GNN":
         return gnn.GNN(node_f=node_f, edge_f=edge_f, action_type=action_type, config=model_config)
-        
     elif model_type == "Transformer":
         return transformer.Transformer(node_f=node_f, edge_f=edge_f, action_type=action_type, config=model_config)
+    elif model_type == "GNN_GCN":
+        return algo_gcn.AlgoGCN(node_f=node_f, edge_f=edge_f, action_type=action_type, config=model_config)
+    elif model_type == "GNN_GAT":
+        return algo_gat.AlgoGAT(node_f=node_f, edge_f=edge_f, action_type=action_type, config=model_config)
+    elif model_type == "GNN_GTN":
+        return algo_gtn.AlgoGraphTransformer(node_f=node_f, edge_f=edge_f, action_type=action_type, config=model_config)
     else:
         raise ValueError("Model type not supported")
 
@@ -38,31 +43,8 @@ def forward_pass(model: torch.nn.Module,
                  actions: torch.Tensor=None,
                  pick_max: bool=False,):
     
-    if model_type == 'GNN':
+    if model_type.startswith('GNN'):
         model_input = graph_envs.utils.to_pyg_graph(x, edge_features, edge_index)
-    
-    elif model_type == 'GNN_full':
-        # TODO: fix this
-        model_input = graph_envs.utils.to_pyg_graph(x, edge_features, edge_index)
-        model_input.original_edges = edge_index
-        
-        x, edge_features, edge_index, batch = model_input.x, model_input.edge_attr, model_input.edge_index, model_input.batch
-        adj = pyg.utils.to_dense_adj(edge_index, batch=batch, edge_attr=edge_features)
-        adj[adj != 0] += 1
-        
-        edge_index, edge_features = pyg.utils.dense_to_sparse(adj[:,:,:,0])
-        
-        edge_index = (adj[:,:,:,0] + 1).nonzero().t()
-        
-        edge_features = adj[edge_index[0], edge_index[1], edge_index[2], :]
-        row = edge_index[1] + adj[:,:,:,0].size(-2) * edge_index[0]
-        col = edge_index[2] + adj[:,:,:,0].size(-1) * edge_index[0]
-        edge_index = torch.stack([row, col], dim=0)
-        
-        model_input.x = x
-        model_input.edge_attr = edge_features
-        model_input.edge_index = edge_index
-        
         
     elif model_type == 'Transformer':
         model_input = graph_envs.utils.to_pyg_graph(x, edge_features, edge_index)

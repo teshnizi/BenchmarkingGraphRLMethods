@@ -77,7 +77,7 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
             print("Evaluating the model...")
             if (update % (10*train_config.eval_freq) == 0) and (update > 0):
                 torch.save(model.state_dict(), f'./models/{run_name}_up{update}.pth')
-            print(train_config.seed)
+            print('Seed: ', train_config.seed)
             learning.eval.eval_model(model, model_type, env_id, env_args, eval_envs, train_config.eval_steps,
                        has_mask=train_config.has_mask, device=device, seed=train_config.seed,
                        writer=writer, global_step=global_step,

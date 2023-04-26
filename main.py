@@ -22,14 +22,13 @@ seed = None
 # ======= Env Config ========
 # ===========================
 
-device = torch.device('cuda:7')
+device = torch.device('cuda:6')
 
 env_args = {
     'n_nodes': 30,
     'n_edges': -1,
-    # 'n_dests': 10,
-    # 'weighted': True,
-    # 'target_count': 10,
+    'n_dests': 5,
+    'weighted': True,
     'parenting': 1,
 }
 
@@ -41,9 +40,9 @@ if env_args['n_edges'] == -1:
 # env_id = 'MaxIndependentSet-v0'
 # env_id = 'TSP-v0'
 # env_id = 'DistributionCenter-v0'
-# env_id = 'MulticastRouting-v0'
+env_id = 'MulticastRouting-v0'
 # env_id = 'LongestPath-v0'
-env_id = 'DensestSubgraph-v0'
+# env_id = 'DensestSubgraph-v0'
 
 
 # ===========================
@@ -85,8 +84,11 @@ train_config.seed = seed
 # ====== Model Config =======
 # ===========================
 
-model_type = 'GNN'
-# model_type = 'Transformer'
+# model_type = 'GNN'
+model_type = 'Transformer'
+# model_type = 'GNN_GCN'
+# model_type = 'GNN_GAT'
+# model_type = 'GNN_GTN'
 model_config = networks.model_configs.get_default_config(model_type)
 
 # ===========================
@@ -97,7 +99,7 @@ import graph_envs.steiner_tree
 if __name__ == '__main__':
     
     # Initializing the tensorboard writer
-    run_name = f"run_{int(time.time())%1e7}_{env_id}_{model_type}_N{env_args['n_nodes']}_E{env_args['n_edges']}_Parenting{env_args['parenting']}"
+    run_name = f"run_{int(time.time())%1e7}_{env_id}_{model_type}_N{env_args['n_nodes']}_E{env_args['n_edges']}_Parenting{env_args['parenting'] if 'parenting' in env_args else 'NA'}"
     
     # Initializing the model
     model = utils.get_model(model_type, model_config, env_id).to(device)
@@ -112,7 +114,7 @@ if __name__ == '__main__':
         
         print('*-'*10)
         print('Nodes: ', env_args['n_nodes'], 'Edges: ', env_args['n_edges'])
-        print('Env: ', env_id, ' || Model: ', model_type, ' || Parenting: ', env_args["parenting"])
+        print('Env: ', env_id, ' || Model: ', model_type, ' || Parenting: ', env_args["parenting"] if 'parenting' in env_args else 'NA')
         print('*-'*10)
         
         # Initializing the environments

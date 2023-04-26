@@ -22,7 +22,7 @@ if env_args['n_edges'] == -1:
     env_args['n_edges'] = int((env_args['n_nodes'] * (env_args['n_nodes'] - 1) // 2) * 0.30)
     
 
-device = torch.device('cpu')
+device = torch.device('cuda:0')
 
 # env_id = 'ShortestPath-v0'
 # env_id = 'SteinerTree-v0'
@@ -63,13 +63,17 @@ model_type = 'GNN'
 if __name__ == '__main__':
     
     params_path = "models/" +\
-        "run_1974127.0_LongestPath-v0_GNN_N30_E130_Parenting1_up900.pth"
-        # "run_1974172.0_LongestPath-v0_GNN_N30_E130_Parenting2_up900.pth"
+        "run_2123633.0_LongestPath-v0_GNN_N30_E130_Parenting2_up900.pth"
+        # "run_2123432.0_LongestPath-v0_GNN_N30_E130_Parenting1_up900.pth"
+        # "run_2126170.0_LongestPath-v0_GNN_N30_E130_Parenting0_up900.pth"
+        
+        
+        
         
     
     model_config = networks.model_configs.get_default_config(model_type)
     model = utils.get_model(model_type, model_config, env_id).to(device)
-    # model.load_state_dict(torch.load(params_path, map_location=device))
+    model.load_state_dict(torch.load(params_path, map_location=device))
     
     
     env_args['is_eval_env'] = True
@@ -139,10 +143,13 @@ if __name__ == '__main__':
     # utils.draw_graph(G, 'graph.png', edges_taken=edges_taken)
     # utils.draw_graph(G, 'graph.png', edges_taken=None)
     
-    n = env_args['n_nodes']
+    # n = env_args['n_nodes']
     
-    for m in range(n, (n*n)//2, 10):
-        # env_args['n_edges'] = m    
+    # for m in range(n, (n*n)//2, 10):
+    
+    for n in range(10, 100, 10):
+        env_args['n_nodes'] = n
+        env_args['n_edges'] = int((n * (n - 1) // 2) * 0.30)
             
         env = gym.vector.AsyncVectorEnv([
         lambda:
@@ -154,7 +161,6 @@ if __name__ == '__main__':
         print('---------')
         print(f'Number of nodes: {env_args["n_nodes"]}')
         print(f'Number of edges: {env_args["n_edges"]}')     
-        learning.eval.eval_model(model, model_type, env_id, env_args, env, n_steps=200, has_mask=has_mask, device=device, seed=1234, writer=None, global_step=0, pick_max=False, verbose=False)
+        learning.eval.eval_model(model, model_type, env_id, env_args, env, n_steps=100, has_mask=has_mask, device=device, seed=1234, writer=None, global_step=0, pick_max=False, verbose=False)
         
-        break
         

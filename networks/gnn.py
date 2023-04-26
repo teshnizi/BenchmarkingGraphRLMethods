@@ -29,17 +29,13 @@ class GNN(torch.nn.Module):
         torch.nn.init.xavier_uniform_(self.init_u)
         
         # self.gnn_layers = torch.nn.ModuleList([
-        #     # pyg.nn.GATConv(in_channels=self.config.hidden, out_channels=self.config.hidden, dropout=config.dropout) for _ in range(config.layers)])
         #     MyGNNLayer(self.config.hidden, config.activation, 2, config.norm, config.dropout) for _ in range(config.layers)])
         
         self.norm = torch.nn.LayerNorm(self.config.hidden)
         
         self.gnn_layer = MyGNNLayer(self.config.hidden, config.activation, 2, config.norm, config.dropout)
-        # self.gat_layer = pyg.nn.GATv2Conv(in_channels=self.config.hidden, out_channels=self.config.hidden//2, dropout=config.dropout, heads=2, edge_dim=self.config.hidden)
         
-        # if self.action_type == 'node':
-        # self.action_net = ResidualMLP(10, self.config.hidden, 10, config.activation, 2, norm=False, dropout=config.dropout)
-            
+        
         self.action_net = torch.nn.Sequential(
             torch.nn.Linear(self.config.hidden, self.config.hidden),
             self.config.activation(),
@@ -47,9 +43,6 @@ class GNN(torch.nn.Module):
             torch.nn.Linear(self.config.hidden, 1)
         )
         
-        # elif self.action_type == 'edge':
-        #     # self.action_netct =
-        #     pass
         
         self.critic_net = torch.nn.Sequential(
             torch.nn.Linear(self.config.hidden, self.config.hidden),

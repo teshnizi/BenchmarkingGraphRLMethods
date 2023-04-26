@@ -21,20 +21,21 @@ def aggregate_runs(csv_files):
     for file in csv_files:
         df = pd.read_csv(file)
         
-        _, _, _, env_id, model_type, nodes, edges, parenting = file.split('_')
+        _, _, tm, env_id, model_type, nodes, edges, parenting = file.split('_')
         nodes = int(nodes[1:])
         edges = int(edges[1:])
         parenting = int(parenting[-5])
-        if parenting == 3:
-            parenting = 2
-        
+        # if parenting == 3:
+        #     parenting = 2
+        if parenting == 2 and float(tm) < 2260000:
+            continue
         key = f'Parenting L{parenting}'
         
-        if env_id == "LongestPath-v0" and model_type == 'GNN' and nodes == 30:
+        # if env_id == "LongestPath-v0" and model_type == 'GNN' and nodes == 30:
+        if env_id == "DensestSubgraph-v0" and model_type == 'GNN' and nodes == 30:
             if key not in runs:
                 runs[key] = []
             runs[key].append(df)
-        
     return runs
 
 
@@ -58,16 +59,18 @@ def plot_aggregated_runs(aggregated_runs):
 
 
     plt.xlabel('Iteration')
-    plt.ylabel('Fraction Solved')
+    plt.ylabel('Graph Density')
     plt.legend()
     # handles, labels = plt.gca().get_legend_handles_labels()
-    # order = [2,0,1]
+    # order = [0,2,1]
     # plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], loc='lower right')
     
-    plt.savefig('LongestPath_GNN_30_solved.pdf', format='pdf')
+    plt.savefig('DensestSubgraph_GNN_30_density.pdf', format='pdf')
     
 csv_folder = 'csv_output'
 csv_files = [os.path.join(csv_folder, file) for file in os.listdir(csv_folder) if file.endswith('.csv')]
 
 aggregated_runs = aggregate_runs(csv_files)
+for run in aggregated_runs.keys():
+    print(run, len(aggregated_runs[run]))
 plot_aggregated_runs(aggregated_runs)
