@@ -1,6 +1,6 @@
 __pycache__/
 network/__pycache__/
-runs/
+runs*/
 models/
 tmp.py
 graph.png
@@ -8,3 +8,5 @@ nohup.out
 csv_output/
 *.png
 *.pdf
+runs.*
+
