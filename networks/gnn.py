@@ -80,7 +80,7 @@ class GNN(torch.nn.Module):
         x, edge_features, global_features = self.encode(batch_graph)
         
         
-        if self.action_type == 'node':    
+        if self.action_type == 'node':
             logits = self.action_net(x)
         elif self.action_type == 'edge':
             logits = self.action_net(edge_features)

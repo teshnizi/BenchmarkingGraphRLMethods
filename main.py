@@ -22,12 +22,13 @@ seed = None
 # ======= Env Config ========
 # ===========================
 
-device = torch.device('cuda:6')
+device = torch.device('cuda:1')
 
 env_args = {
-    'n_nodes': 30,
+    'n_nodes': 10,
     'n_edges': -1,
-    'n_dests': 5,
+    'num_products': 2,
+    # 'n_dests': 5,
     'weighted': True,
     'parenting': 1,
 }
@@ -40,9 +41,10 @@ if env_args['n_edges'] == -1:
 # env_id = 'MaxIndependentSet-v0'
 # env_id = 'TSP-v0'
 # env_id = 'DistributionCenter-v0'
-env_id = 'MulticastRouting-v0'
+# env_id = 'MulticastRouting-v0'
 # env_id = 'LongestPath-v0'
 # env_id = 'DensestSubgraph-v0'
+env_id = 'PerishableProductDelivery-v0'
 
 
 # ===========================
@@ -51,7 +53,7 @@ env_id = 'MulticastRouting-v0'
 
 train_config = {
 'n_envs': 8,
-'n_steps':64,
+'n_steps':128,
 # 'total_steps': 5000000,
 'mini_batch_size': 128,
 'n_epochs': 4,
@@ -84,8 +86,8 @@ train_config.seed = seed
 # ====== Model Config =======
 # ===========================
 
-# model_type = 'GNN'
-model_type = 'Transformer'
+model_type = 'GNN'
+# model_type = 'Transformer'
 # model_type = 'GNN_GCN'
 # model_type = 'GNN_GAT'
 # model_type = 'GNN_GTN'

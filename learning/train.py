@@ -38,6 +38,9 @@ def train_ppo(model, optimizer, envs, eval_envs, run_name, train_config, model_t
     elif env_id == 'DensestSubgraph-v0':
         has_mask = True
         mask_shape = (env_args['n_nodes'],)
+    elif env_id == 'PerishableProductDelivery-v0':
+        has_mask = True
+        mask_shape = (env_args['n_nodes'],)
     else:
         assert False, f'Unknown env_id: {env_id}'
         

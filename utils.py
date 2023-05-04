@@ -86,7 +86,7 @@ def draw_graph(G, file_name, edges_taken=[]):
         G.edges[e]['edge_attr'] = round(G.edges[e]['edge_attr'] * 10)/10
     
     # save image of graph to file:
-    plt.figure(figsize=(20,20))
+    plt.figure(figsize=(7,7))
     layout = nx.kamada_kawai_layout(G)
     nx.draw(G, pos=layout, with_labels=True, edge_color=edge_color, node_color=node_color)
     nx.draw_networkx_edge_labels(G, pos=layout, edge_labels=nx.get_edge_attributes(G, 'edge_attr'), font_color='red')
