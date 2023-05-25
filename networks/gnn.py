@@ -31,7 +31,7 @@ class GNN(torch.nn.Module):
         # self.gnn_layers = torch.nn.ModuleList([
         #     MyGNNLayer(self.config.hidden, config.activation, 2, config.norm, config.dropout) for _ in range(config.layers)])
         
-        self.norm = torch.nn.LayerNorm(self.config.hidden)
+        # self.norm = torch.nn.LayerNorm(self.config.hidden)
         
         self.gnn_layer = MyGNNLayer(self.config.hidden, config.activation, 2, config.norm, config.dropout)
         

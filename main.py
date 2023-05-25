@@ -22,29 +22,31 @@ seed = None
 # ======= Env Config ========
 # ===========================
 
-device = torch.device('cuda:1')
+device = torch.device('cuda:3')
 
 env_args = {
-    'n_nodes': 10,
+    'n_nodes': 20,
     'n_edges': -1,
-    'num_products': 2,
-    # 'n_dests': 5,
+    # 'num_products': 2,
+    'n_dests': 5,
     'weighted': True,
-    'parenting': 1,
+    # 'spatial': False,
+    # 'parenting': 2,
 }
+
 
 if env_args['n_edges'] == -1:
     env_args['n_edges'] = int((env_args['n_nodes'] * (env_args['n_nodes'] - 1) // 2) * 0.30)
     
 # env_id = 'ShortestPath-v0'
-# env_id = 'SteinerTree-v0'
+env_id = 'SteinerTree-v0'
 # env_id = 'MaxIndependentSet-v0'
 # env_id = 'TSP-v0'
 # env_id = 'DistributionCenter-v0'
 # env_id = 'MulticastRouting-v0'
 # env_id = 'LongestPath-v0'
 # env_id = 'DensestSubgraph-v0'
-env_id = 'PerishableProductDelivery-v0'
+# env_id = 'PerishableProductDelivery-v0'
 
 
 # ===========================
@@ -91,6 +93,8 @@ model_type = 'GNN'
 # model_type = 'GNN_GCN'
 # model_type = 'GNN_GAT'
 # model_type = 'GNN_GTN'
+# model_type = 'Graphormer'
+
 model_config = networks.model_configs.get_default_config(model_type)
 
 # ===========================
@@ -101,7 +105,8 @@ import graph_envs.steiner_tree
 if __name__ == '__main__':
     
     # Initializing the tensorboard writer
-    run_name = f"run_{int(time.time())%1e7}_{env_id}_{model_type}_N{env_args['n_nodes']}_E{env_args['n_edges']}_Parenting{env_args['parenting'] if 'parenting' in env_args else 'NA'}"
+    run_name = f"run_{int(time.time())%1e7}_{env_id}_{model_type}_N{env_args['n_nodes']}_E{env_args['n_edges']}_Parenting{env_args['parenting'] if 'parenting' in env_args else 'NA'}"\
+        + f"{'__Spatial' + str(env_args['spatial']) if 'spatial' in env_args else ''}"
     
     # Initializing the model
     model = utils.get_model(model_type, model_config, env_id).to(device)

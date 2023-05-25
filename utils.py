@@ -1,9 +1,12 @@
-from networks import gnn, transformer, algo_gcn, algo_gat, algo_gtn
+from networks import gnn, transformer, algo_gcn, algo_gat, algo_gtn, graphormer
 import torch
 import graph_envs
 import torch.nn as nn 
 import torch_geometric as pyg
 import networkx as nx 
+import time
+
+from transformers.models.graphormer.collating_graphormer import preprocess_item, GraphormerDataCollator
 
 import matplotlib.pyplot as plt
 
@@ -29,6 +32,8 @@ def get_model(model_type, model_config, env_id):
         return algo_gat.AlgoGAT(node_f=node_f, edge_f=edge_f, action_type=action_type, config=model_config)
     elif model_type == "GNN_GTN":
         return algo_gtn.AlgoGraphTransformer(node_f=node_f, edge_f=edge_f, action_type=action_type, config=model_config)
+    elif model_type == "Graphormer":
+        return graphormer.GraphormerAgent(node_f=node_f, edge_f=edge_f, action_type=action_type, config=model_config)
     else:
         raise ValueError("Model type not supported")
 
@@ -41,15 +46,61 @@ def forward_pass(model: torch.nn.Module,
                  has_mask: bool,
                  masks: torch.Tensor=None,
                  actions: torch.Tensor=None,
-                 pick_max: bool=False,):
+                 pick_max: bool=False):
     
     if model_type.startswith('GNN'):
         model_input = graph_envs.utils.to_pyg_graph(x, edge_features, edge_index)
         
     elif model_type == 'Transformer':
         model_input = graph_envs.utils.to_pyg_graph(x, edge_features, edge_index)
-        # model_input = (x, edge_features, edge_index.transpose(-1, -2))
         
+    elif model_type == 'Graphormer':
+        
+        # print(x.shape)
+        # print(edge_features.shape)
+        # print(edge_index.shape)
+        # print(x.device)
+        # time this step:
+        
+        st = time.time()
+        
+        device = x.device
+        
+        model_input = {}
+        
+        for i in range(x.shape[0]):
+            
+            dct = {'num_nodes': x.shape[1],
+                                 'node_feat': x[i,:,:].cpu(),
+                                 'edge_attr': edge_features[i,:,:].cpu(),
+                                 'edge_index': edge_index[i,:,:].cpu().transpose(-1, -2),
+                                 'y': [0]}
+
+            
+            dp = preprocess_item(dct)
+            dp['input_nodes'] = torch.Tensor(dp['input_nodes']).unsqueeze(0).long()
+            dp['attn_bias'] = torch.Tensor(dp['attn_bias']).unsqueeze(0)
+            dp['spatial_pos'] = torch.Tensor(dp['spatial_pos']).unsqueeze(0).long()
+            dp['input_edges'] = torch.Tensor(dp['input_edges']).unsqueeze(0).long()
+            dp['in_degree'] = torch.Tensor(dp['in_degree']).unsqueeze(0).long()
+            dp['out_degree'] = torch.Tensor(dp['out_degree']).unsqueeze(0).long()
+            dp['labels'] = torch.Tensor(dp['labels']).unsqueeze(0).long()
+            dp['edge_index'] = torch.Tensor(dp['edge_index']).unsqueeze(0).long()
+            dp['edge_attr'] = torch.Tensor(dp['edge_attr']).unsqueeze(0)
+            dp['y'] = torch.Tensor(dp['y']).unsqueeze(0).long()
+            dp['num_nodes'] = torch.Tensor(dp['num_nodes']).unsqueeze(0).long()
+            dp['node_feat'] = torch.Tensor(dp['node_feat']).unsqueeze(0)
+            dp['attn_edge_type'] = torch.Tensor(dp['attn_edge_type']).unsqueeze(0).long()
+            
+            for k in dp:
+                if not k in model_input:
+                    model_input[k] = []
+                model_input[k].append(dp[k])
+
+        for k in model_input:
+            model_input[k] = torch.cat(model_input[k], dim=0).to(device)
+        
+        # print("Time to preprocess: ", time.time() - st)
     else:
         raise ValueError("Model type not supported")
     
@@ -64,8 +115,6 @@ def forward_pass(model: torch.nn.Module,
         
     return action, logprob, entropy, value
         
-
-
 
 def draw_graph(G, file_name, edges_taken=[]):
     

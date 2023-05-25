@@ -137,6 +137,7 @@ class Transformer(torch.nn.Module):
         x = x.reshape(batch_graph.num_graphs, -1, self.node_f)
         x = self.node_proc(x)
         
+        
         # x += self.positional_encoding(torch.arange(x.shape[1], device=x.device))
         
         edge_features = pyg.utils.to_dense_adj(edge_index, batch=batch, edge_attr=edge_features)
