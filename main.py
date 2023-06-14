@@ -22,24 +22,25 @@ seed = None
 # ======= Env Config ========
 # ===========================
 
-device = torch.device('cuda:3')
+device = torch.device('cuda:0')
 
 env_args = {
-    'n_nodes': 20,
+    'n_nodes': 30,
     'n_edges': -1,
+    # 'n_choices': 29,
     # 'num_products': 2,
-    'n_dests': 5,
+    # 'n_dests': 5,
     'weighted': True,
     # 'spatial': False,
-    # 'parenting': 2,
+    'parenting': -1,
 }
 
 
 if env_args['n_edges'] == -1:
     env_args['n_edges'] = int((env_args['n_nodes'] * (env_args['n_nodes'] - 1) // 2) * 0.30)
     
-# env_id = 'ShortestPath-v0'
-env_id = 'SteinerTree-v0'
+env_id = 'ShortestPath-v0'
+# env_id = 'SteinerTree-v0'
 # env_id = 'MaxIndependentSet-v0'
 # env_id = 'TSP-v0'
 # env_id = 'DistributionCenter-v0'
@@ -93,7 +94,6 @@ model_type = 'GNN'
 # model_type = 'GNN_GCN'
 # model_type = 'GNN_GAT'
 # model_type = 'GNN_GTN'
-# model_type = 'Graphormer'
 
 model_config = networks.model_configs.get_default_config(model_type)
 
