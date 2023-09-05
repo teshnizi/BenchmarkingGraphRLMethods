@@ -26,4 +26,11 @@ you need to choose the right number of node and edge features based on the data 
 
 you need to choose the right shape for the mask based on what the actions are (node, edge, messages, or a combination of them).
 
------
+----- multicast_env_onr.py, all lines -----
+
+The environemnt is defined here
+
+----- main_onr.py, lines 27 to 52 -----
+
+You can modify hyperparameters and configurations here.
+
